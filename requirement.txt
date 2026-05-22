@@ -1,0 +1,1026 @@
+FEDEX AI ANALYTICS CHATBOT POC – FULL SYSTEM DESIGN & IMPLEMENTATION SPECIFICATION
+OBJECTIVE
+Build a fully dockerized AI-powered logistics analytics chatbot platform that simulates a FedEx-style operational analytics system using synthetic logistics data.
+
+The application should allow users (operations managers, sales teams, leadership teams) to ask natural language business questions and dynamically generate analytics reports.
+
+The reports should:
+
+be generated conversationally
+
+support follow-up clarification questions
+
+render enterprise-style tables/charts
+
+generate permanent report URLs
+
+always show real-time data when revisited
+
+support PDF/Excel export
+
+run entirely in Docker
+
+deploy into AWS
+
+This is a POC/MVP, NOT a production-grade enterprise system.
+
+HIGH LEVEL REQUIREMENTS
+Core Features
+1. Conversational Analytics
+Users should ask questions like:
+
+Show delayed shipments in Bangalore for last 7 days
+
+Compare COD revenue by state
+
+Show top performing hubs this month
+
+Which routes have maximum SLA breaches?
+
+2. AI Follow-Up Questions
+If user query is ambiguous, AI must ask clarification questions.
+
+Example:
+
+User:
+"Show revenue report"
+
+AI:
+
+Which region?
+
+What date range?
+
+Daily or monthly?
+
+Include COD payments?
+
+3. Dynamic Report Generation
+Generate:
+
+tabular reports
+
+grouped reports
+
+aggregated reports
+
+charts
+
+pivot-like analytics
+
+4. Permanent Report URLs
+Reports must generate URLs like:
+
+/reports/{report_id}
+
+Opening later should:
+
+rerun query
+
+fetch latest data
+
+rerender report
+
+Store report metadata/configuration only.
+DO NOT store report data snapshots.
+
+5. Export Support
+Reports must support:
+
+Excel export
+
+PDF export
+
+6. Synthetic Data Generation
+Since real FedEx data is unavailable:
+
+generate realistic logistics datasets
+
+include operational correlations
+
+support analytics workloads
+
+TECH STACK
+Frontend
+Next.js 14
+
+React
+
+TypeScript
+
+Tailwind CSS
+
+shadcn/ui
+
+AG Grid
+
+Apache ECharts
+
+Backend
+Python 3.11
+
+FastAPI
+
+SQLAlchemy
+
+Pydantic
+
+LangGraph
+
+OpenAI API integration
+
+Database
+PostgreSQL 16
+
+Caching / Session
+Redis
+
+Infrastructure
+Docker
+
+Docker Compose
+
+AWS Deployment Target
+ECS Fargate preferred
+OR
+
+EC2 Docker deployment
+
+ARCHITECTURE
+SYSTEM FLOW
+Frontend Chat UI
+↓
+FastAPI Backend
+↓
+LangGraph Workflow Engine
+↓
+Intent Extraction
+↓
+Semantic Query JSON
+↓
+SQL Builder
+↓
+PostgreSQL
+↓
+Report Renderer
+↓
+Permalink Storage
+
+IMPORTANT IMPLEMENTATION RULE
+DO NOT IMPLEMENT unrestricted text-to-SQL generation.
+
+Instead:
+
+LLM must ONLY produce structured semantic query JSON.
+
+Backend converts semantic query → SQL safely.
+
+SEMANTIC QUERY SCHEMA
+Use this structure internally:
+
+{
+"metric": "delayed_shipments",
+"dimensions": ["hub"],
+"filters": {
+"region": "South",
+"date_range": "last_7_days"
+},
+"visualization": "table",
+"sort": {
+"field": "delayed_shipments",
+"direction": "desc"
+},
+"limit": 10
+}
+
+DATABASE DESIGN
+TABLE: orders
+Columns:
+
+order_id
+
+tracking_number
+
+customer_id
+
+origin_city
+
+destination_city
+
+shipment_type
+
+shipment_status
+
+booked_date
+
+promised_delivery_date
+
+actual_delivery_date
+
+weight
+
+payment_type
+
+amount
+
+hub_id
+
+TABLE: hubs
+Columns:
+
+hub_id
+
+hub_name
+
+city
+
+state
+
+region
+
+manager_name
+
+TABLE: tracking_events
+Columns:
+
+event_id
+
+tracking_number
+
+event_type
+
+event_timestamp
+
+location
+
+TABLE: payments
+Columns:
+
+payment_id
+
+tracking_number
+
+payment_mode
+
+amount
+
+payment_status
+
+payment_date
+
+SYNTHETIC DATA REQUIREMENTS
+Generate realistic logistics data.
+
+Dataset Size:
+
+orders: 500k rows
+
+tracking_events: 2M rows
+
+payments: 500k rows
+
+hubs: 100 rows
+
+Use:
+
+Faker
+
+Pandas
+
+NumPy
+
+IMPORTANT DATA CORRELATIONS
+The synthetic data MUST include realistic operational behavior:
+
+delayed shipments higher during monsoon months
+
+express shipments cost more
+
+COD more common in tier-2 cities
+
+heavy packages have higher delay rates
+
+certain hubs should intentionally underperform
+
+some regions should have higher SLA breaches
+
+This is critical for believable analytics demos.
+
+AI WORKFLOW
+Implement LangGraph workflow:
+
+Receive user query
+
+Detect intent
+
+Detect missing dimensions/filters
+
+Ask follow-up questions
+
+Build semantic query JSON
+
+Generate SQL safely
+
+Execute query
+
+Generate report metadata
+
+Store permalink
+
+Return report URL
+
+SUPPORTED METRICS
+Include:
+
+total_shipments
+
+delayed_shipments
+
+sla_breach_percent
+
+cod_revenue
+
+total_revenue
+
+avg_delivery_time
+
+delivery_success_rate
+
+SUPPORTED DIMENSIONS
+Include:
+
+city
+
+state
+
+region
+
+hub
+
+shipment_type
+
+payment_type
+
+date
+
+week
+
+month
+
+REPORT TYPES
+Support:
+
+table
+
+bar_chart
+
+line_chart
+
+pie_chart
+
+FRONTEND REQUIREMENTS
+Chat UI
+Build enterprise-style chatbot interface.
+
+Features:
+
+chat history
+
+loading states
+
+markdown rendering
+
+follow-up question handling
+
+Report UI
+Build dynamic report pages.
+
+Features:
+
+AG Grid tables
+
+sorting
+
+filtering
+
+grouping
+
+export
+
+ECharts visualizations
+
+REPORT PERMALINK DESIGN
+Create table:
+
+saved_reports
+
+Columns:
+
+report_id
+
+report_config_json
+
+created_at
+
+created_by
+
+Store:
+
+semantic query
+
+chart config
+
+layout metadata
+
+DO NOT store actual report data.
+
+EXPORT IMPLEMENTATION
+Excel
+Use ExcelJS.
+
+PDF
+Use Puppeteer.
+
+Generate PDF from rendered report page.
+
+BACKEND API DESIGN
+Implement APIs:
+
+POST /chat
+POST /reports/generate
+GET /reports/{id}
+GET /reports/{id}/data
+GET /reports/{id}/export/excel
+GET /reports/{id}/export/pdf
+
+SECURITY FOR POC
+Implement simple JWT authentication.
+
+Roles:
+
+admin
+
+manager
+
+sales
+
+Basic role filtering is enough.
+
+DOCKER REQUIREMENTS
+Create Dockerfiles for:
+
+frontend
+
+backend
+
+Create docker-compose.yml including:
+
+frontend
+
+backend
+
+postgres
+
+redis
+
+Include:
+
+environment variables
+
+networking
+
+volumes
+
+AWS DEPLOYMENT REQUIREMENTS
+Generate:
+
+ECS Fargate deployment configs
+OR
+
+EC2 deployment scripts
+
+Include:
+
+Docker image build steps
+
+ECR push scripts
+
+ECS task definitions
+
+security groups
+
+environment variables
+
+nginx reverse proxy config
+
+PROJECT STRUCTURE
+Generate this structure:
+
+fedex-ai-poc/
+│
+├── frontend/
+├── backend/
+├── database/
+├── infrastructure/
+├── docker-compose.yml
+├── README.md
+└── scripts/
+
+BACKEND REQUIREMENTS
+FastAPI Structure
+backend/
+├── app/
+│ ├── api/
+│ ├── services/
+│ ├── ai/
+│ ├── models/
+│ ├── schemas/
+│ ├── db/
+│ ├── reports/
+│ └── utils/
+
+FRONTEND REQUIREMENTS
+frontend/
+├── app/
+├── components/
+├── services/
+├── hooks/
+├── types/
+└── utils/
+
+REQUIRED DELIVERABLES
+Generate complete implementation including:
+
+Full source code
+
+Dockerfiles
+
+Docker Compose
+
+Database schema
+
+Synthetic data generation scripts
+
+FastAPI backend
+
+LangGraph workflow
+
+OpenAI integration
+
+Frontend UI
+
+Report rendering
+
+Export functionality
+
+AWS deployment scripts
+
+ECS configs
+
+README documentation
+
+Environment variable templates
+
+IMPORTANT IMPLEMENTATION PRIORITIES
+Priority order:
+
+Stable architecture
+
+Reliable report generation
+
+Good UI
+
+Realistic data
+
+Smooth demo experience
+
+AI follow-up interactions
+
+Export support
+
+DO NOT IMPLEMENT
+Do NOT add:
+
+Kubernetes
+
+microservices
+
+vector databases
+
+RAG
+
+autonomous agents
+
+event streaming
+
+Kafka
+
+dbt
+
+Snowflake
+
+complex RBAC
+
+advanced ML forecasting
+
+Keep implementation POC-focused and lightweight.
+
+EXPECTED OUTPUT
+Generate:
+
+complete runnable project
+
+production-quality folder structure
+
+modular code
+
+comments/documentation
+
+setup instructions
+
+AWS deployment instructions
+
+The final output should run using:
+
+docker-compose up
+
+and should be deployable into AWS ECS/Fargate with minimal modifications.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ADDITIONAL INTEGRATION REQUIREMENTS — PHP APPLICATION EMBEDDED MODE
+IMPORTANT ARCHITECTURE CHANGE
+The AI analytics chatbot platform is NOT a standalone application anymore.
+
+It must be embedded into an existing PHP web application.
+
+The PHP application is the primary host application and already handles:
+
+authentication
+
+user sessions
+
+navigation
+
+left panel/menu system
+
+user management
+
+The AI analytics platform should behave as a modular embedded analytics component inside the PHP ecosystem.
+
+UPDATED SYSTEM ARCHITECTURE
+Existing PHP Application
+↓
+Embedded AI Chat Widget (React/Next.js)
+↓
+FastAPI Backend
+↓
+AI Workflow + PostgreSQL
+
+The AI application must trust authentication/session information coming from PHP.
+
+INTEGRATION REQUIREMENTS
+1. EMBEDDED CHATBOT WIDGET
+The chatbot UI must be embeddable inside PHP pages.
+
+Preferred integration methods:
+
+iframe embedding
+OR
+
+JavaScript widget injection
+
+Preferred approach:
+
+iframe-based embedding for simplicity and isolation.
+
+Example:
+
+<iframe
+    src="https://ai-analytics.company.com/chat"
+    width="100%"
+    height="100%"
+    frameborder="0">
+</iframe>
+However, authentication/session data must still be shared securely.
+
+2. PHP SESSION INTEGRATION
+The AI backend MUST receive authenticated user information from the PHP session.
+
+The existing PHP application is the source of truth for authentication.
+
+DO NOT implement separate login screens in the AI app.
+
+3. RECOMMENDED AUTHENTICATION FLOW
+Preferred Flow
+PHP App
+↓
+Creates signed JWT token
+↓
+Passes token to embedded AI widget
+↓
+FastAPI validates JWT
+↓
+User context established
+
+JWT PAYLOAD REQUIREMENTS
+The PHP application should generate JWT tokens containing:
+
+{
+"user_id": 123,
+"username": "john.doe",
+"email": "john@example.com",
+"role": "manager",
+"region": "South",
+"exp": 9999999999
+}
+
+FASTAPI AUTH REQUIREMENTS
+Implement JWT middleware in FastAPI.
+
+Requirements:
+
+validate token signature
+
+extract user context
+
+attach user info to request context
+
+use role/region filters in reports
+
+ROLE-BASED FILTERING
+The chatbot must automatically apply user-level restrictions.
+
+Example:
+
+Sales manager from South region:
+
+should only see South region data
+
+Leadership:
+
+can see all regions
+
+Implement row-level filtering logic in backend SQL generation.
+
+EMBEDDED WIDGET REQUIREMENTS
+Chat Widget UI
+The chatbot should support:
+
+fullscreen mode
+
+embedded panel mode
+
+responsive design
+
+dark/light theme support
+
+enterprise dashboard styling
+
+4. PREVIOUS REPORTS IN PHP LEFT PANEL
+The existing PHP application's left navigation panel should display:
+
+"Previous Reports"
+
+This data should come dynamically from AI backend APIs.
+
+REQUIRED API
+Implement API:
+
+GET /users/{user_id}/reports
+
+Returns:
+
+[
+{
+"report_id": "abc123",
+"title": "Delayed Shipments South Region",
+"created_at": "2026-05-22",
+"report_url": "/reports/abc123"
+}
+]
+
+PHP LEFT PANEL INTEGRATION
+The PHP application will call the above API and render links in left navigation.
+
+Example:
+
+Analytics Reports
+
+Delayed Shipments South
+
+COD Revenue Monthly
+
+SLA Breaches Bangalore
+
+Clicking opens report pages in:
+
+new tab
+OR
+
+embedded iframe view
+
+REPORT URL BEHAVIOR
+Report URLs must:
+
+support authenticated access
+
+validate JWT/session
+
+rerun live queries
+
+render latest data
+
+Example:
+
+https://ai-analytics.company.com/reports/abc123
+
+SINGLE SIGN-ON (SSO) REQUIREMENTS
+Implement lightweight SSO integration.
+
+DO NOT implement:
+
+separate user database
+
+separate login pages
+
+standalone authentication
+
+Authentication ownership belongs to PHP application.
+
+CORS REQUIREMENTS
+Enable secure CORS configuration.
+
+Allow:
+
+PHP application domain
+
+localhost for development
+
+Include:
+
+credential support
+
+secure headers
+
+FRONTEND EMBEDDING REQUIREMENTS
+Frontend must support:
+
+iframe embedding
+
+query param auth token
+
+postMessage communication (optional advanced mode)
+
+OPTIONAL ADVANCED INTEGRATION
+Support JavaScript SDK embedding:
+
+Example:
+
+<script src="ai-widget.js"></script>
+
+<div id="ai-chat-widget"></div>
+
+<script>
+AIWidget.init({
+  token: "JWT_TOKEN",
+  container: "#ai-chat-widget"
+});
+</script>
+But iframe embedding should be implemented first for POC simplicity.
+
+REPORT SHARING REQUIREMENTS
+Users should only see:
+
+their own reports
+OR
+
+reports shared within allowed roles
+
+Implement:
+
+report ownership
+
+report metadata
+
+DATABASE CHANGES
+saved_reports TABLE
+Add columns:
+
+created_by_user_id
+
+visibility
+
+allowed_roles
+
+UI REQUIREMENTS
+The report UI should visually feel like:
+
+enterprise BI dashboard
+
+Tableau-style analytics
+
+PowerBI-like report pages
+
+AWS DEPLOYMENT REQUIREMENTS
+Deploy architecture:
+
+PHP App
+↓
+NGINX Reverse Proxy
+↓
+Frontend Container
+Backend Container
+Postgres
+Redis
+
+NGINX ROUTING REQUIREMENTS
+Configure:
+
+/ai/* → frontend
+/api/* → FastAPI backend
+
+Support:
+
+websocket upgrades
+
+JWT forwarding
+
+iframe embedding headers
+
+SECURITY HEADERS
+Allow iframe embedding only from trusted PHP domain.
+
+Configure:
+
+X-Frame-Options
+
+CSP frame-ancestors
+
+SESSION FLOW EXAMPLE
+User logs into PHP app
+
+PHP app creates JWT
+
+User opens AI analytics widget
+
+JWT passed to widget
+
+FastAPI validates token
+
+User-specific reports loaded
+
+Left panel shows previous reports
+
+Reports open with live data
+
+UPDATED DELIVERABLES
+Generate additionally:
+
+PHP integration examples
+
+JWT token generation example in PHP
+
+iframe embedding examples
+
+NGINX configs
+
+CORS setup
+
+user reports API
+
+report ownership handling
+
+embedded widget mode
+
+session validation middleware
+
+role-based filtering logic
+
+IMPORTANT IMPLEMENTATION PRIORITY
+The system must feel like:
+
+a native extension of the PHP platform
+NOT
+
+a disconnected standalone app
+
+The user experience should be seamless.

@@ -1,0 +1,11 @@
+schema: spec-driven
+
+context: |
+  Project: analytics-ai-agent-tool
+  Scope: Analytics AI agent tool project under presearch/analytics-ai-agent-tool.
+  OpenSpec artifacts stay under analytics-ai-agent-tool/openspec.
+  Implementation code should be generated under analytics-ai-agent-tool/fedex-ai-poc.
+  The application is an embedded analytics component for an existing CodeIgniter PHP application.
+  No authentication or user sessions are managed or checked. The chatbot assumes a single user role with access to all data.
+  Target deployment is Docker Compose for local development and AWS ECS Fargate for cloud deployment.
+
