@@ -58,11 +58,112 @@ async def export_excel(report_id: int):
 
 
 # ---------------------------------------------------------------------------
+# Chart Generation Helpers (ReportLab Graphics)
+# ---------------------------------------------------------------------------
+def create_bar_chart(data, x_labels, width=440):
+    from reportlab.graphics.shapes import Drawing
+    from reportlab.graphics.charts.barcharts import VerticalBarChart
+    from reportlab.lib import colors
+
+    drawing = Drawing(width, 180)
+    chart = VerticalBarChart()
+    chart.x = 40
+    chart.y = 20
+    chart.height = 140
+    chart.width = width - 60
+    chart.data = [data]
+    chart.categoryAxis.categoryNames = x_labels
+    chart.categoryAxis.labels.fontSize = 7
+    chart.categoryAxis.labels.dy = -10
+    chart.categoryAxis.labels.angle = 15
+    chart.valueAxis.valueMin = 0
+    chart.valueAxis.labels.fontSize = 7
+    
+    chart.bars[0].fillColor = colors.HexColor("#2B6CB0")
+    chart.valueAxis.visibleGrid = 1
+    chart.valueAxis.gridStrokeColor = colors.HexColor("#E2E8F0")
+    chart.valueAxis.gridStrokeWidth = 0.5
+    
+    drawing.add(chart)
+    return drawing
+
+def create_line_chart(data, x_labels, width=440):
+    from reportlab.graphics.shapes import Drawing
+    from reportlab.graphics.charts.lineplots import LinePlot
+    from reportlab.lib import colors
+
+    drawing = Drawing(width, 180)
+    chart = LinePlot()
+    chart.x = 40
+    chart.y = 20
+    chart.height = 140
+    chart.width = width - 60
+    chart.data = [ [(i, val) for i, val in enumerate(data)] ]
+    
+    chart.xValueAxis.valueMin = 0
+    chart.xValueAxis.valueMax = max(1, len(data) - 1)
+    chart.xValueAxis.valueStep = 1
+    chart.xValueAxis.labels.fontSize = 7
+    
+    def format_x_label(val):
+        idx = int(round(val))
+        if 0 <= idx < len(x_labels):
+            return x_labels[idx]
+        return ""
+    chart.xValueAxis.labelTextFormat = format_x_label
+    chart.xValueAxis.labels.dy = -10
+    chart.xValueAxis.labels.angle = 15
+    
+    chart.yValueAxis.valueMin = 0
+    chart.yValueAxis.labels.fontSize = 7
+    chart.yValueAxis.visibleGrid = 1
+    chart.yValueAxis.gridStrokeColor = colors.HexColor("#E2E8F0")
+    chart.yValueAxis.gridStrokeWidth = 0.5
+    
+    chart.lines[0].strokeColor = colors.HexColor("#2B6CB0")
+    chart.lines[0].strokeWidth = 2
+    
+    drawing.add(chart)
+    return drawing
+
+def create_pie_chart(data, x_labels, width=440):
+    from reportlab.graphics.shapes import Drawing
+    from reportlab.graphics.charts.piecharts import Pie
+    from reportlab.lib import colors
+
+    drawing = Drawing(width, 180)
+    chart = Pie()
+    chart.x = (width / 2) - 75
+    chart.y = 15
+    chart.width = 140
+    chart.height = 140
+    chart.data = data
+    chart.labels = [f"{label}: {val}" for label, val in zip(x_labels, data)]
+    chart.sideLabels = 1
+    chart.slices.strokeWidth = 0.5
+    chart.slices.strokeColor = colors.white
+    
+    palette = [
+        colors.HexColor("#2B6CB0"),
+        colors.HexColor("#319795"),
+        colors.HexColor("#4A5568"),
+        colors.HexColor("#DD6B20"),
+        colors.HexColor("#805AD5"),
+        colors.HexColor("#E53E3E"),
+    ]
+    for i in range(len(data)):
+        chart.slices[i].fillColor = palette[i % len(palette)]
+        
+    drawing.add(chart)
+    return drawing
+
+
+# ---------------------------------------------------------------------------
 # GET /api/reports/{id}/export/pdf
 # ---------------------------------------------------------------------------
 @router.get("/reports/{report_id}/export/pdf")
 async def export_pdf(report_id: int):
-    """Generate and stream a real PDF file from live report data."""
+    """Generate and stream a real PDF file from live report data, including charts."""
     from reportlab.lib.pagesizes import letter
     from reportlab.lib import colors
     from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
@@ -91,13 +192,12 @@ async def export_pdf(report_id: int):
 
     styles = getSampleStyleSheet()
     
-    # Custom styles
     title_style = ParagraphStyle(
         name='ReportTitle',
         parent=styles['Heading1'],
         fontSize=20,
         leading=24,
-        textColor=colors.HexColor("#1A365D"), # Deep blue
+        textColor=colors.HexColor("#1A365D"),
         spaceAfter=12
     )
     
@@ -106,7 +206,7 @@ async def export_pdf(report_id: int):
         parent=styles['Normal'],
         fontSize=9,
         leading=12,
-        textColor=colors.HexColor("#4A5568"), # Gray
+        textColor=colors.HexColor("#4A5568"),
         spaceAfter=15
     )
 
@@ -134,9 +234,44 @@ async def export_pdf(report_id: int):
     elements.append(Paragraph(f"Generated at: {generated_time} | Rows: {len(rows)}", meta_style))
     elements.append(Spacer(1, 10))
 
+    # Try to generate chart if dimensions and metrics exist
+    if sq.dimensions and len(rows) > 0 and sq.visualization != "table":
+        dim_key = sq.dimensions[0].value
+        metric_key = sq.metrics[0].value if sq.metrics else None
+        
+        if dim_key in rows[0] and metric_key in rows[0]:
+            chart_rows = rows[:10]
+            x_labels = [str(r.get(dim_key, "")) for r in chart_rows]
+            
+            y_values = []
+            for r in chart_rows:
+                val = r.get(metric_key, 0.0)
+                try:
+                    y_values.append(float(val) if val is not None else 0.0)
+                except ValueError:
+                    y_values.append(0.0)
+
+            chart_drawing = None
+            width_available = doc.width
+            
+            if sq.visualization == "bar_chart":
+                chart_drawing = create_bar_chart(y_values, x_labels, width=width_available)
+            elif sq.visualization == "line_chart":
+                chart_drawing = create_line_chart(y_values, x_labels, width=width_available)
+            elif sq.visualization == "pie_chart":
+                chart_drawing = create_pie_chart(y_values, x_labels, width=width_available)
+                
+            if chart_drawing:
+                elements.append(Paragraph(f"Visualization: {sq.visualization.replace('_', ' ').title()}", styles["Heading3"]))
+                elements.append(Spacer(1, 5))
+                elements.append(chart_drawing)
+                elements.append(Spacer(1, 15))
+
     # Construct the data table
-    headers = list(rows[0].keys())
+    elements.append(Paragraph("Data Table", styles["Heading3"]))
+    elements.append(Spacer(1, 5))
     
+    headers = list(rows[0].keys())
     table_data = []
     
     # Header row
