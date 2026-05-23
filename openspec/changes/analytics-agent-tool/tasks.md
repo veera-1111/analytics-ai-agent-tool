@@ -116,5 +116,7 @@
 - [x] 12.6 Create interactive suggestion CTAs (chips) for visual format selection (Bar, Line, Pie, Table)
 - [x] 12.7 Allow full-width usage of chat and report screens by expanding layout container width properties
 - [x] 12.8 Prevent axis labels from getting clipped using ECharts grid containLabel configurations
+- [x] 12.9 Persistently log all user prompts and agent responses to the SQLite database conversation_log table
+
 
 
