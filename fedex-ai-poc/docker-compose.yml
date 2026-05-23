@@ -14,6 +14,7 @@ services:
     volumes:
       - db-data:/data
       - ./backend:/app
+      - ~/.aws:/root/.aws:ro
     depends_on:
       - redis
     restart: unless-stopped
