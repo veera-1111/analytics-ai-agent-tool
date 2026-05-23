@@ -30,11 +30,20 @@ export default function ChatPage() {
   // Detect embedded vs fullscreen mode — no auth context parsing
   const [mode, setMode] = useState<"embedded" | "fullscreen">("fullscreen");
 
+  const [sessionId, setSessionId] = useState<string>("");
+
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get("mode") === "embedded") {
       setMode("embedded");
     }
+    
+    let sid = sessionStorage.getItem("chat_session_id");
+    if (!sid) {
+      sid = crypto.randomUUID();
+      sessionStorage.setItem("chat_session_id", sid);
+    }
+    setSessionId(sid);
   }, []);
 
   useEffect(() => {
@@ -57,7 +66,7 @@ export default function ChatPage() {
       const res = await fetch(`${API_BASE}/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: text.trim() }),
+        body: JSON.stringify({ message: text.trim(), session_id: sessionId }),
       });
       const data = await res.json();
 

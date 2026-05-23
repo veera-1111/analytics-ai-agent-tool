@@ -104,24 +104,110 @@ class MockProvider(AIProvider):
     def generate_semantic_query(self, user_message: str, chat_history: list[dict]) -> dict:
         normalised = user_message.strip().lower()
 
-        # Exact or fuzzy match against known demo prompts
+        # 1. Exact or fuzzy match against known complete demo prompts
         for key, response in MOCK_RESPONSES.items():
-            if key in normalised or normalised in key:
+            if key == normalised or key in normalised:
                 return response
 
-        # Keyword-based fallback
-        if "delay" in normalised or "late" in normalised:
-            return MOCK_RESPONSES["delayed shipments by month"]
-        if "sla" in normalised or "breach" in normalised:
-            return MOCK_RESPONSES["sla breach rate by hub"]
-        if "revenue" in normalised or "payment" in normalised or "cod" in normalised:
-            return MOCK_RESPONSES["revenue breakdown by payment type"]
-        if "express" in normalised or "standard" in normalised or "success" in normalised:
-            return MOCK_RESPONSES["compare express vs standard delivery success"]
-        if "shipment" in normalised or "volume" in normalised or "total" in normalised or "region" in normalised:
-            return MOCK_RESPONSES["show me total shipments by region"]
+        # 2. Check chat history for follow-ups and accumulate slot fillings
+        last_assistant_msg = ""
+        for msg in reversed(chat_history or []):
+            if msg.get("role") == "assistant":
+                last_assistant_msg = msg.get("content", "")
+                break
 
-        # Clarification for unknown queries
+        # Accumulate all user utterances in this session
+        user_turns = [m.get("content", "").lower() for m in (chat_history or []) if m.get("role") == "user"]
+        user_turns.append(normalised)
+        combined_user_input = " ".join(user_turns)
+
+        # Slot detection
+        has_month = "month" in combined_user_input
+        has_region = "region" in combined_user_input
+        has_hub = "hub" in combined_user_input
+        has_payment = "payment" in combined_user_input or "payment_type" in combined_user_input
+
+        has_line = "line" in combined_user_input
+        has_bar = "bar" in combined_user_input
+        has_pie = "pie" in combined_user_input
+
+        if "delayed shipments" in last_assistant_msg.lower() or "delay" in combined_user_input:
+            if has_month and has_line:
+                return MOCK_RESPONSES["delayed shipments by month"]
+            elif has_month:
+                return {
+                    "type": "clarification",
+                    "reply": "Great! And what **visualization format** do you prefer for delayed shipments by month (e.g., **line_chart** or **bar_chart**)?"
+                }
+            elif has_line:
+                return {
+                    "type": "clarification",
+                    "reply": "Got it, line chart. And which **dimension** should we group delayed shipments by (e.g., **month**, **hub**, or **city**)?"
+                }
+            else:
+                return {
+                    "type": "clarification",
+                    "reply": "I can show you **Delayed Shipments**! Which **dimension** would you like to group by (e.g. **month**, **hub**, or **city**)? And what **visualization format** do you prefer (e.g. **line_chart** or **bar_chart**)?"
+                }
+
+        if "total shipments" in last_assistant_msg.lower() or "shipment" in combined_user_input or "volume" in combined_user_input:
+            if has_region and has_bar:
+                return MOCK_RESPONSES["show me total shipments by region"]
+            elif has_region:
+                return {
+                    "type": "clarification",
+                    "reply": "Great! And what **visualization format** do you prefer for total shipments by region (e.g., **bar_chart** or **pie_chart**)?"
+                }
+            elif has_bar:
+                return {
+                    "type": "clarification",
+                    "reply": "Got it, bar chart. And which **dimension** should we group total shipments by (e.g., **region**, **state**, or **hub**)?"
+                }
+            else:
+                return {
+                    "type": "clarification",
+                    "reply": "I can show you **Total Shipments**! Which **dimension** would you like to group by (e.g. **region**, **state**, or **hub**)? And what **visualization format** do you prefer (e.g. **bar_chart** or **pie_chart**)?"
+                }
+
+        if "sla breach rate" in last_assistant_msg.lower() or "sla" in combined_user_input or "breach" in combined_user_input:
+            if has_hub and has_bar:
+                return MOCK_RESPONSES["sla breach rate by hub"]
+            elif has_hub:
+                return {
+                    "type": "clarification",
+                    "reply": "Great! And what **visualization format** do you prefer for SLA breach rate by hub (e.g., **bar_chart** or **table**)?"
+                }
+            elif has_bar:
+                return {
+                    "type": "clarification",
+                    "reply": "Got it, bar chart. And which **dimension** should we group SLA breach rate by (e.g., **hub** or **city**)?"
+                }
+            else:
+                return {
+                    "type": "clarification",
+                    "reply": "I can show you the **SLA Breach Rate**! Which **dimension** would you like to group by (e.g. **hub** or **city**)? And what **visualization format** do you prefer (e.g. **bar_chart** or **table**)?"
+                }
+
+        if "revenue breakdown" in last_assistant_msg.lower() or "revenue" in combined_user_input or "payment" in combined_user_input or "cod" in combined_user_input:
+            if has_payment and has_pie:
+                return MOCK_RESPONSES["revenue breakdown by payment type"]
+            elif has_payment:
+                return {
+                    "type": "clarification",
+                    "reply": "Great! And what **visualization format** do you prefer for revenue breakdown by payment type (e.g., **pie_chart** or **bar_chart**)?"
+                }
+            elif has_pie:
+                return {
+                    "type": "clarification",
+                    "reply": "Got it, pie chart. And which **dimension** should we group revenue breakdown by (e.g., **payment_type** or **city**)?"
+                }
+            else:
+                return {
+                    "type": "clarification",
+                    "reply": "I can show you the **Revenue Breakdown**! Which **dimension** would you like to group by (e.g. **payment_type** or **city**)? And what **visualization format** do you prefer (e.g. **pie_chart** or **bar_chart**)?"
+                }
+
+        # 4. Unknown greeting / general prompt
         return {
             "type": "clarification",
             "reply": (
