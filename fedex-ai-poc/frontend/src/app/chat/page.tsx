@@ -151,10 +151,20 @@ export default function ChatPage() {
             <div className={msg.role === "user" ? "chat-bubble-user" : "chat-bubble-agent"}>
               {msg.role === "agent" ? (
                 <div className="prose prose-sm dark:prose-invert max-w-none">
-                  <ReactMarkdown>{msg.content}</ReactMarkdown>
+                  <ReactMarkdown
+                    components={{
+                      a: ({ node, ...props }) => (
+                        <a target="_blank" rel="noopener noreferrer" {...props} />
+                      )
+                    }}
+                  >
+                    {msg.content}
+                  </ReactMarkdown>
                   {msg.reportUrl && (
                     <a
                       href={msg.reportUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
                       className="inline-flex items-center gap-1 mt-2 px-3 py-1.5 text-sm font-medium rounded-lg bg-primary-600 text-white hover:bg-primary-700 transition-colors no-underline"
                     >
                       View Report →
