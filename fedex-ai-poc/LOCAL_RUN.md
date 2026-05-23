@@ -351,3 +351,26 @@ Common issues:
 - database missing: rerun database initialization and sample seed.
 - exports fail: check Puppeteer/Chromium dependencies in the export-capable container.
 
+## 12. Quality / Lint Commands
+
+**Backend (Python)**:
+
+```bash
+docker compose exec backend flake8 app/
+docker compose exec backend python -m mypy app/
+```
+
+**Frontend (TypeScript)**:
+
+```bash
+docker compose exec frontend npm run lint
+docker compose exec frontend npx tsc --noEmit
+```
+
+**Automated Local Validation** (all Section 9 checks):
+
+```bash
+bash scripts/validate_local.sh
+```
+
+

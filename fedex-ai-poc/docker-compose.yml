@@ -1,0 +1,73 @@
+version: "3.9"
+
+services:
+  # ── Backend (FastAPI + Peewee + SQLite) ──────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: ai-backend
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    volumes:
+      - db-data:/data
+      - ./backend:/app
+    depends_on:
+      - redis
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+
+  # ── Frontend (Next.js 14) ────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: ai-frontend
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    volumes:
+      - ./frontend/src:/app/src
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+
+  # ── Redis ────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: ai-redis
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+  # ── NGINX Reverse Proxy ──────────────────────────────────
+  nginx:
+    image: nginx:1.25-alpine
+    container_name: ai-nginx
+    ports:
+      - "8080:80"
+    volumes:
+      - ./infrastructure/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - frontend
+      - backend
+    restart: unless-stopped
+
+volumes:
+  db-data:
+    driver: local
