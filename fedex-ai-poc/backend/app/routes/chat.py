@@ -12,6 +12,7 @@ from fastapi import APIRouter
 from app.agent.agent import agent_graph
 from app.analytics.schemas import ChatRequest, ChatResponse
 from app.config import settings
+from app.database.models import ConversationLog
 
 router = APIRouter(prefix="/api", tags=["chat"])
 
@@ -58,6 +59,22 @@ async def chat(req: ChatRequest):
         except Exception:
             pass
 
+    # Persist conversation log to SQLite database
+    try:
+        if req.session_id:
+            ConversationLog.create(
+                session_id=req.session_id,
+                role="user",
+                content=req.message
+            )
+            ConversationLog.create(
+                session_id=req.session_id,
+                role="agent",
+                content=result.get("reply", "")
+            )
+    except Exception as e:
+        print(f"Error logging conversation to DB: {e}")
+
     return ChatResponse(
         reply=result.get("reply", ""),
         type=result.get("response_type", "text"),
@@ -65,3 +82,4 @@ async def chat(req: ChatRequest):
         report_url=f"/ai/reports/{result['report_id']}" if result.get("report_id") else None,
         semantic_query=result.get("semantic_query"),
     )
+

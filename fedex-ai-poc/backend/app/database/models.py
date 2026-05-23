@@ -142,6 +142,21 @@ class SavedReport(BaseModel):
 
 
 # ---------------------------------------------------------------------------
+# ConversationLog — persistent record of all chat messages
+# ---------------------------------------------------------------------------
+class ConversationLog(BaseModel):
+    id = AutoField()
+    session_id = CharField(max_length=100, index=True)
+    role = CharField(max_length=20)          # user | agent
+    content = TextField()
+    created_at = DateTimeField(default=datetime.utcnow, index=True)
+
+    class Meta:
+        table_name = "conversation_log"
+
+
+# ---------------------------------------------------------------------------
 # All models for table creation / iteration
 # ---------------------------------------------------------------------------
-ALL_MODELS = [Hub, Order, TrackingEvent, Payment, SavedReport]
+ALL_MODELS = [Hub, Order, TrackingEvent, Payment, SavedReport, ConversationLog]
+
