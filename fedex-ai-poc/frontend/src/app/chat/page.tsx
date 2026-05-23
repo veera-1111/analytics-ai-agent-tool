@@ -172,14 +172,43 @@ export default function ChatPage() {
                     {msg.content}
                   </ReactMarkdown>
                   {msg.reportUrl && (
-                    <a
-                      href={msg.reportUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 mt-2 px-3 py-1.5 text-sm font-medium rounded-lg bg-primary-600 text-white hover:bg-primary-700 transition-colors no-underline"
-                    >
-                      View Report →
-                    </a>
+                    <div className="mt-4 border border-[var(--border-color)] rounded-xl overflow-hidden bg-white dark:bg-surface-dark shadow-sm max-w-full">
+                      {/* Embed Header */}
+                      <div className="flex items-center justify-between px-3 py-2 border-b border-[var(--border-color)] bg-[var(--bg-secondary)]">
+                        <span className="text-xs font-semibold text-[var(--text-primary)]">Report Preview</span>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => window.open(msg.reportUrl, "_blank")}
+                            className="px-2.5 py-1 text-xs font-medium rounded bg-primary-600 text-white hover:bg-primary-700 transition-colors flex items-center gap-1"
+                            title="Maximize view"
+                          >
+                            ↗ Maximize
+                          </button>
+                          <a
+                            href={`${API_BASE}/reports/${msg.reportUrl.split("/").pop()}/export/excel`}
+                            className="px-2.5 py-1 text-xs font-medium rounded border border-[var(--border-color)] hover:bg-muted-light dark:hover:bg-muted-dark transition-colors flex items-center gap-1 text-[var(--text-primary)] no-underline"
+                            title="Download Excel"
+                          >
+                            📊 Excel
+                          </a>
+                          <a
+                            href={`${API_BASE}/reports/${msg.reportUrl.split("/").pop()}/export/pdf`}
+                            className="px-2.5 py-1 text-xs font-medium rounded border border-[var(--border-color)] hover:bg-muted-light dark:hover:bg-muted-dark transition-colors flex items-center gap-1 text-[var(--text-primary)] no-underline"
+                            title="Download PDF"
+                          >
+                            📄 PDF
+                          </a>
+                        </div>
+                      </div>
+                      {/* Embed Body (IFrame) */}
+                      <div className="w-full h-80 bg-[var(--bg-primary)]">
+                        <iframe
+                          src={`${msg.reportUrl}?mode=embedded`}
+                          className="w-full h-full border-0"
+                          title="Report Embed"
+                        />
+                      </div>
+                    </div>
                   )}
                 </div>
               ) : (

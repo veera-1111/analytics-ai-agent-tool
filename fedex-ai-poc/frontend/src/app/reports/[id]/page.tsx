@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import dynamic from "next/dynamic";
 import "ag-grid-community/styles/ag-grid.css";
 import "ag-grid-community/styles/ag-theme-alpine.css";
@@ -37,7 +37,9 @@ interface ReportData {
 
 export default function ReportPage() {
   const params = useParams();
+  const searchParams = useSearchParams();
   const reportId = params?.id as string;
+  const isEmbedded = searchParams?.get("mode") === "embedded";
 
   const [meta, setMeta] = useState<ReportMeta | null>(null);
   const [reportData, setReportData] = useState<ReportData | null>(null);
@@ -90,39 +92,41 @@ export default function ReportPage() {
   const viz = reportData.visualization || "table";
 
   return (
-    <div className="min-h-screen bg-surface-light dark:bg-surface-dark">
+    <div className={`${isEmbedded ? "" : "min-h-screen"} bg-surface-light dark:bg-surface-dark`}>
       {/* Header */}
-      <header className="border-b border-[var(--border-color)] px-6 py-4">
-        <div className="flex items-center justify-between max-w-7xl mx-auto">
-          <div>
-            <h1 className="text-xl font-semibold">{meta.title}</h1>
-            <p className="text-sm text-[var(--text-secondary)] mt-1">
-              Generated {new Date(meta.created_at).toLocaleString()} · {reportData.total_rows} rows
-            </p>
+      {!isEmbedded && (
+        <header className="border-b border-[var(--border-color)] px-6 py-4">
+          <div className="flex items-center justify-between max-w-7xl mx-auto">
+            <div>
+              <h1 className="text-xl font-semibold">{meta.title}</h1>
+              <p className="text-sm text-[var(--text-secondary)] mt-1">
+                Generated {new Date(meta.created_at).toLocaleString()} · {reportData.total_rows} rows
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <a
+                href={`${API_BASE}/reports/${reportId}/export/excel`}
+                className="px-4 py-2 text-sm rounded-lg border border-[var(--border-color)] hover:bg-muted-light dark:hover:bg-muted-dark transition-colors"
+                id="export-excel-btn"
+              >
+                📊 Excel
+              </a>
+              <a
+                href={`${API_BASE}/reports/${reportId}/export/pdf`}
+                className="px-4 py-2 text-sm rounded-lg border border-[var(--border-color)] hover:bg-muted-light dark:hover:bg-muted-dark transition-colors"
+                id="export-pdf-btn"
+              >
+                📄 PDF
+              </a>
+            </div>
           </div>
-          <div className="flex gap-2">
-            <a
-              href={`${API_BASE}/reports/${reportId}/export/excel`}
-              className="px-4 py-2 text-sm rounded-lg border border-[var(--border-color)] hover:bg-muted-light dark:hover:bg-muted-dark transition-colors"
-              id="export-excel-btn"
-            >
-              📊 Excel
-            </a>
-            <a
-              href={`${API_BASE}/reports/${reportId}/export/pdf`}
-              className="px-4 py-2 text-sm rounded-lg border border-[var(--border-color)] hover:bg-muted-light dark:hover:bg-muted-dark transition-colors"
-              id="export-pdf-btn"
-            >
-              📄 PDF
-            </a>
-          </div>
-        </div>
-      </header>
+        </header>
+      )}
 
       {/* Report content */}
-      <main className="max-w-7xl mx-auto p-6">
+      <main className={`max-w-7xl mx-auto ${isEmbedded ? "p-1" : "p-6"}`}>
         {/* Filters summary */}
-        {meta.config.filters?.length > 0 && (
+        {meta.config.filters?.length > 0 && !isEmbedded && (
           <div className="mb-4 flex flex-wrap gap-2">
             {meta.config.filters.map((f: any, i: number) => (
               <span
@@ -137,13 +141,14 @@ export default function ReportPage() {
 
         {/* Visualization */}
         {viz === "table" ? (
-          <TableView columns={reportData.columns} data={reportData.data} />
+          <TableView columns={reportData.columns} data={reportData.data} isEmbedded={isEmbedded} />
         ) : (
           <ChartView
             type={viz}
             data={reportData.data}
             dimensions={meta.config.dimensions}
             metrics={meta.config.metrics}
+            isEmbedded={isEmbedded}
           />
         )}
       </main>
@@ -154,7 +159,15 @@ export default function ReportPage() {
 // ---------------------------------------------------------------------------
 // AG Grid table view
 // ---------------------------------------------------------------------------
-function TableView({ columns, data }: { columns: string[]; data: Record<string, any>[] }) {
+function TableView({
+  columns,
+  data,
+  isEmbedded,
+}: {
+  columns: string[];
+  data: Record<string, any>[];
+  isEmbedded?: boolean;
+}) {
   const columnDefs = columns.map((col) => ({
     field: col,
     headerName: col.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
@@ -164,12 +177,15 @@ function TableView({ columns, data }: { columns: string[]; data: Record<string, 
   }));
 
   return (
-    <div className="ag-theme-alpine dark:ag-theme-alpine-dark w-full" style={{ height: 600 }}>
+    <div
+      className="ag-theme-alpine dark:ag-theme-alpine-dark w-full"
+      style={{ height: isEmbedded ? 260 : 600 }}
+    >
       <AgGridReact
         rowData={data}
         columnDefs={columnDefs}
         pagination={true}
-        paginationPageSize={50}
+        paginationPageSize={isEmbedded ? 10 : 50}
         domLayout="normal"
         defaultColDef={{
           flex: 1,
@@ -190,11 +206,13 @@ function ChartView({
   data,
   dimensions,
   metrics,
+  isEmbedded,
 }: {
   type: string;
   data: Record<string, any>[];
   dimensions: string[];
   metrics: string[];
+  isEmbedded?: boolean;
 }) {
   const dimKey = dimensions[0] || Object.keys(data[0] || {})[0];
   const metricKey = metrics[0] || Object.keys(data[0] || {}).find((k) => k !== dimKey) || "";
@@ -233,8 +251,8 @@ function ChartView({
   }
 
   return (
-    <div className="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-sm">
-      <ReactECharts option={option} style={{ height: 450 }} />
+    <div className={`bg-white dark:bg-slate-800 rounded-xl ${isEmbedded ? "p-2" : "p-6 shadow-sm"}`}>
+      <ReactECharts option={option} style={{ height: isEmbedded ? 250 : 450 }} />
     </div>
   );
 }
