@@ -77,19 +77,19 @@
 
 ## 9. Local Container Validation
 
-- [ ] 9.1 Verify `docker compose build` succeeds from `fedex-ai-poc/`
-- [ ] 9.2 Verify `docker compose up -d redis` starts runtime dependencies
-- [ ] 9.3 Verify SQLite database initializes and schema tables are created successfully
-- [ ] 9.4 Verify sample seed command writes demo data into the SQLite database
-- [ ] 9.5 Verify `docker compose up -d` starts the full local stack
-- [ ] 9.6 Verify `/api/health`, `/api/health/db`, and `/api/health/redis` through NGINX
-- [ ] 9.7 Verify embedded chat iframe route loads correctly
-- [ ] 9.8 Verify demo prompts generate reports or clarification questions as expected
-- [ ] 9.9 Verify saved report URLs rerun live data queries against SQLite
-- [ ] 9.10 Verify list reports API returns saved reports
-- [ ] 9.11 Verify Excel and PDF exports download successfully
-- [ ] 9.12 Verify `AI_PROVIDER=mock` works without AWS credentials
-- [ ] 9.13 Verify `AI_PROVIDER=bedrock` fails clearly when Bedrock configuration is missing
+- [x] 9.1 Verify `docker compose build` succeeds from `fedex-ai-poc/`
+- [x] 9.2 Verify `docker compose up -d redis` starts runtime dependencies
+- [x] 9.3 Verify SQLite database initializes and schema tables are created successfully
+- [x] 9.4 Verify sample seed command writes demo data into the SQLite database
+- [x] 9.5 Verify `docker compose up -d` starts the full local stack
+- [x] 9.6 Verify `/api/health`, `/api/health/db`, and `/api/health/redis` through NGINX
+- [x] 9.7 Verify embedded chat iframe route loads correctly
+- [x] 9.8 Verify demo prompts generate reports or clarification questions as expected
+- [x] 9.9 Verify saved report URLs rerun live data queries against SQLite
+- [x] 9.10 Verify list reports API returns saved reports
+- [x] 9.11 Verify Excel and PDF exports download successfully
+- [x] 9.12 Verify `AI_PROVIDER=mock` works without AWS credentials
+- [x] 9.13 Verify `AI_PROVIDER=bedrock` fails clearly when Bedrock configuration is missing
 
 ## 10. Quality Checks
 
@@ -104,4 +104,17 @@
 - [x] 11.3 Add ECS service configuration notes for networking, environment variables, secrets, and AWS Bedrock IAM permissions
 - [x] 11.4 Add security group and load balancer routing documentation for `/ai/*` and `/api/*`
 - [x] 11.5 Add ECS deployment instructions that depend on passing local Docker validation first
+
+
+## 12. Report Embedding & OpenDhi Branding Updates
+
+- [x] 12.1 Embed report previews dynamically inside chat bubbles as interactive iframes using Next.js mode parameters
+- [x] 12.2 Hide header metadata when report views are embedded in the chat bubble
+- [x] 12.3 Add Maximize, Excel, and PDF controls to the embedded preview card
+- [x] 12.4 Render the official OpenDhi SVG logo inside the main chat and HTML report page headers
+- [x] 12.5 Programmatically draw the vector-based OpenDhi logo on PDF report exports
+- [x] 12.6 Create interactive suggestion CTAs (chips) for visual format selection (Bar, Line, Pie, Table)
+- [x] 12.7 Allow full-width usage of chat and report screens by expanding layout container width properties
+- [x] 12.8 Prevent axis labels from getting clipped using ECharts grid containLabel configurations
+
 
