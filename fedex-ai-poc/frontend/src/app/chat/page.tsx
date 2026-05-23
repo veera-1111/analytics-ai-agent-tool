@@ -123,7 +123,7 @@ export default function ChatPage() {
           </div>
           <div>
             <h1 className="text-lg font-semibold">Logistics Analytics</h1>
-            <p className="text-xs text-[var(--text-secondary)]">AI-powered insights</p>
+            <p className="text-xs text-[var(--text-secondary)]">Powered by openDhi AI engine</p>
           </div>
         </header>
       )}
