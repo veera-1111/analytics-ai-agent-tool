@@ -16,6 +16,64 @@ function generateUUID() {
   });
 }
 
+function extractSuggestions(text: string): { label: string; value: string }[] {
+  const regex = /\(e\.g\.?,?\s*([^)]+)\)/gi;
+  const matches = [...text.matchAll(regex)];
+  if (matches.length === 0) return [];
+
+  const suggestions: { label: string; value: string }[] = [];
+  const seenValues = new Set<string>();
+
+  for (const match of matches) {
+    const rawItems = match[1];
+    const items = rawItems
+      .split(/,|\bor\b/)
+      .map(item => item.trim())
+      .filter(item => item.length > 0 && !item.toLowerCase().startsWith("e.g."));
+
+    for (const item of items) {
+      let val = item.toLowerCase().replace(/[\s_-]+/g, "_");
+      if (seenValues.has(val)) continue;
+      seenValues.add(val);
+
+      let label = item
+        .replace(/[_-]+/g, " ")
+        .split(" ")
+        .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+        .join(" ");
+
+      if (val.includes("bar_chart")) {
+        label = "📊 " + label;
+        val = "bar_chart";
+      } else if (val.includes("line_chart")) {
+        label = "📈 " + label;
+        val = "line_chart";
+      } else if (val.includes("pie_chart")) {
+        label = "🥧 " + label;
+        val = "pie_chart";
+      } else if (val.includes("table")) {
+        label = "📋 " + label;
+        val = "table";
+      } else if (val.includes("shipment") || val.includes("delivery")) {
+        label = "📦 " + label;
+      } else if (val.includes("revenue") || val.includes("cost")) {
+        label = "💵 " + label;
+      } else if (val.includes("hub")) {
+        label = "🏢 " + label;
+      } else if (val.includes("city") || val.includes("state") || val.includes("region")) {
+        label = "📍 " + label;
+      } else if (val.includes("month") || val.includes("date") || val.includes("week") || val.includes("year")) {
+        label = "📅 " + label;
+      }
+
+      suggestions.push({ label, value: val });
+    }
+  }
+
+  return suggestions;
+}
+
+
 interface Message {
   id: string;
   role: "user" | "agent";
@@ -109,6 +167,8 @@ export default function ChatPage() {
     sendMessage(input);
   };
 
+  const isEmbedded = mode === "embedded";
+
   return (
     <div className={`flex flex-col ${isEmbedded ? "h-screen" : "h-screen max-w-6xl mx-auto"} bg-surface-light dark:bg-surface-dark`}>
       {/* Header — hidden in embedded mode */}
@@ -190,35 +250,25 @@ export default function ChatPage() {
                     {msg.content}
                   </ReactMarkdown>
                   
-                  {/* Visualization suggestions CTA chips */}
-                  {msg.content.includes("visualization format") && (
-                    <div className="flex flex-wrap gap-2 mt-3">
-                      <button
-                        onClick={() => sendMessage("bar_chart")}
-                        className="px-3.5 py-1.5 rounded-full border border-primary-500 bg-white dark:bg-surface-dark hover:bg-primary-50 dark:hover:bg-primary-950/20 transition-colors text-xs font-semibold text-primary-700 dark:text-primary-400 flex items-center gap-1.5 shadow-sm"
-                      >
-                        📊 Bar Chart
-                      </button>
-                      <button
-                        onClick={() => sendMessage("line_chart")}
-                        className="px-3.5 py-1.5 rounded-full border border-primary-500 bg-white dark:bg-surface-dark hover:bg-primary-50 dark:hover:bg-primary-950/20 transition-colors text-xs font-semibold text-primary-700 dark:text-primary-400 flex items-center gap-1.5 shadow-sm"
-                      >
-                        📈 Line Chart
-                      </button>
-                      <button
-                        onClick={() => sendMessage("pie_chart")}
-                        className="px-3.5 py-1.5 rounded-full border border-primary-500 bg-white dark:bg-surface-dark hover:bg-primary-50 dark:hover:bg-primary-950/20 transition-colors text-xs font-semibold text-primary-700 dark:text-primary-400 flex items-center gap-1.5 shadow-sm"
-                      >
-                        🥧 Pie Chart
-                      </button>
-                      <button
-                        onClick={() => sendMessage("table")}
-                        className="px-3.5 py-1.5 rounded-full border border-primary-500 bg-white dark:bg-surface-dark hover:bg-primary-50 dark:hover:bg-primary-950/20 transition-colors text-xs font-semibold text-primary-700 dark:text-primary-400 flex items-center gap-1.5 shadow-sm"
-                      >
-                        📋 Table
-                      </button>
-                    </div>
-                  )}
+                  {/* Dynamically parsed suggestion CTA chips */}
+                  {(() => {
+                    const suggestions = extractSuggestions(msg.content);
+                    if (suggestions.length === 0) return null;
+                    return (
+                      <div className="flex flex-wrap gap-2 mt-3">
+                        {suggestions.map((s) => (
+                          <button
+                            key={s.value}
+                            onClick={() => sendMessage(s.value)}
+                            className="px-3.5 py-1.5 rounded-full border border-primary-500 bg-white dark:bg-surface-dark hover:bg-primary-50 dark:hover:bg-primary-950/20 transition-colors text-xs font-semibold text-primary-700 dark:text-primary-400 flex items-center gap-1.5 shadow-sm"
+                          >
+                            {s.label}
+                          </button>
+                        ))}
+                      </div>
+                    );
+                  })()}
+
 
                   {msg.reportUrl && (
                     <div className="mt-4 border border-[var(--border-color)] rounded-xl overflow-hidden bg-white dark:bg-surface-dark shadow-sm max-w-full">
