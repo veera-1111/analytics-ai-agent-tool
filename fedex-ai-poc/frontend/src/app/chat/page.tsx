@@ -109,21 +109,33 @@ export default function ChatPage() {
     sendMessage(input);
   };
 
-  const isEmbedded = mode === "embedded";
-
   return (
-    <div className={`flex flex-col ${isEmbedded ? "h-screen" : "h-screen max-w-4xl mx-auto"} bg-surface-light dark:bg-surface-dark`}>
+    <div className={`flex flex-col ${isEmbedded ? "h-screen" : "h-screen max-w-6xl mx-auto"} bg-surface-light dark:bg-surface-dark`}>
       {/* Header — hidden in embedded mode */}
       {!isEmbedded && (
-        <header className="flex items-center gap-3 px-6 py-4 border-b border-[var(--border-color)]">
-          <div className="w-8 h-8 rounded-lg bg-primary-600 flex items-center justify-center">
-            <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+        <header className="flex items-center justify-between px-6 py-4 border-b border-[var(--border-color)] bg-white dark:bg-surface-dark shadow-xs">
+          <div className="flex items-center gap-3">
+            <svg className="h-8 w-auto" viewBox="0 0 120 30" fill="none" xmlns="http://www.w3.org/2000/svg">
+              {/* Corner brackets */}
+              <path d="M2 8V2H8" stroke="#4ca649" strokeWidth="2.5" strokeLinecap="round" />
+              <path d="M22 8V2H16" stroke="#c27a39" strokeWidth="2.5" strokeLinecap="round" />
+              <path d="M2 16v6h6" stroke="#c27a39" strokeWidth="2.5" strokeLinecap="round" />
+              <path d="M22 16v6h-6" stroke="#4ca649" strokeWidth="2.5" strokeLinecap="round" />
+              
+              {/* Dots inside brackets */}
+              <circle cx="8" cy="8" r="1.5" fill="#4ca649" />
+              <circle cx="16" cy="8" r="1.5" fill="#c27a39" />
+              <circle cx="8" cy="16" r="1.5" fill="#c27a39" />
+              <circle cx="16" cy="16" r="1.5" fill="#4ca649" />
+
+              <text x="32" y="18" fontFamily="system-ui, -apple-system, sans-serif" fontSize="15" fontWeight="800" fill="currentColor" className="text-[var(--text-primary)]">Open</text>
+              <text x="71" y="18" fontFamily="system-ui, -apple-system, sans-serif" fontSize="15" fontWeight="400" fill="currentColor" className="text-[var(--text-primary)]">Dhi</text>
             </svg>
-          </div>
-          <div>
-            <h1 className="text-lg font-semibold">Logistics Analytics</h1>
-            <p className="text-xs text-[var(--text-secondary)]">Powered by openDhi AI engine</p>
+            <div className="h-6 w-px bg-[var(--border-color)] mx-1" />
+            <div>
+              <h1 className="text-sm font-semibold text-[var(--text-primary)]">Logistics Analytics</h1>
+              <p className="text-[10px] text-[var(--text-secondary)] leading-none">Powered by openDhi AI engine</p>
+            </div>
           </div>
         </header>
       )}
@@ -158,8 +170,14 @@ export default function ChatPage() {
         )}
 
         {messages.map((msg) => (
-          <div key={msg.id} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-            <div className={msg.role === "user" ? "chat-bubble-user" : "chat-bubble-agent"}>
+          <div key={msg.id} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"} ${msg.reportUrl ? "w-full" : ""}`}>
+            <div className={
+              msg.role === "user"
+                ? "chat-bubble-user"
+                : msg.reportUrl
+                  ? "bg-muted-light dark:bg-muted-dark text-primary-900 dark:text-primary-100 rounded-2xl rounded-bl-md px-4 py-3 w-full max-w-full"
+                  : "chat-bubble-agent"
+            }>
               {msg.role === "agent" ? (
                 <div className="prose prose-sm dark:prose-invert max-w-none">
                   <ReactMarkdown
@@ -171,6 +189,37 @@ export default function ChatPage() {
                   >
                     {msg.content}
                   </ReactMarkdown>
+                  
+                  {/* Visualization suggestions CTA chips */}
+                  {msg.content.includes("visualization format") && (
+                    <div className="flex flex-wrap gap-2 mt-3">
+                      <button
+                        onClick={() => sendMessage("bar_chart")}
+                        className="px-3.5 py-1.5 rounded-full border border-primary-500 bg-white dark:bg-surface-dark hover:bg-primary-50 dark:hover:bg-primary-950/20 transition-colors text-xs font-semibold text-primary-700 dark:text-primary-400 flex items-center gap-1.5 shadow-sm"
+                      >
+                        📊 Bar Chart
+                      </button>
+                      <button
+                        onClick={() => sendMessage("line_chart")}
+                        className="px-3.5 py-1.5 rounded-full border border-primary-500 bg-white dark:bg-surface-dark hover:bg-primary-50 dark:hover:bg-primary-950/20 transition-colors text-xs font-semibold text-primary-700 dark:text-primary-400 flex items-center gap-1.5 shadow-sm"
+                      >
+                        📈 Line Chart
+                      </button>
+                      <button
+                        onClick={() => sendMessage("pie_chart")}
+                        className="px-3.5 py-1.5 rounded-full border border-primary-500 bg-white dark:bg-surface-dark hover:bg-primary-50 dark:hover:bg-primary-950/20 transition-colors text-xs font-semibold text-primary-700 dark:text-primary-400 flex items-center gap-1.5 shadow-sm"
+                      >
+                        🥧 Pie Chart
+                      </button>
+                      <button
+                        onClick={() => sendMessage("table")}
+                        className="px-3.5 py-1.5 rounded-full border border-primary-500 bg-white dark:bg-surface-dark hover:bg-primary-50 dark:hover:bg-primary-950/20 transition-colors text-xs font-semibold text-primary-700 dark:text-primary-400 flex items-center gap-1.5 shadow-sm"
+                      >
+                        📋 Table
+                      </button>
+                    </div>
+                  )}
+
                   {msg.reportUrl && (
                     <div className="mt-4 border border-[var(--border-color)] rounded-xl overflow-hidden bg-white dark:bg-surface-dark shadow-sm max-w-full">
                       {/* Embed Header */}
@@ -201,7 +250,7 @@ export default function ChatPage() {
                         </div>
                       </div>
                       {/* Embed Body (IFrame) */}
-                      <div className="w-full h-80 bg-[var(--bg-primary)]">
+                      <div className="w-full h-[500px] bg-[var(--bg-primary)]">
                         <iframe
                           src={`${msg.reportUrl}?mode=embedded`}
                           className="w-full h-full border-0"

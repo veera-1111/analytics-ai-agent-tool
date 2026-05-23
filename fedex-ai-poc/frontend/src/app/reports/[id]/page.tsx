@@ -179,13 +179,13 @@ function TableView({
   return (
     <div
       className="ag-theme-alpine dark:ag-theme-alpine-dark w-full"
-      style={{ height: isEmbedded ? 260 : 600 }}
+      style={{ height: isEmbedded ? 440 : 600 }}
     >
       <AgGridReact
         rowData={data}
         columnDefs={columnDefs}
         pagination={true}
-        paginationPageSize={isEmbedded ? 10 : 50}
+        paginationPageSize={isEmbedded ? 15 : 50}
         domLayout="normal"
         defaultColDef={{
           flex: 1,
@@ -254,7 +254,7 @@ function ChartView({
 
   return (
     <div className={`bg-white dark:bg-slate-800 rounded-xl ${isEmbedded ? "p-2" : "p-6 shadow-sm"}`}>
-      <ReactECharts option={option} style={{ height: isEmbedded ? 250 : 450 }} />
+      <ReactECharts option={option} style={{ height: isEmbedded ? 440 : 450 }} />
     </div>
   );
 }

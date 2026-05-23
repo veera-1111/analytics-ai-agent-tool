@@ -158,6 +158,36 @@ def create_pie_chart(data, x_labels, width=440):
     return drawing
 
 
+def create_opendhi_logo_drawing(width=150, height=25):
+    from reportlab.graphics.shapes import Drawing, Rect, Circle, String
+    from reportlab.lib import colors
+    drawing = Drawing(width, height)
+    # Brackets
+    drawing.add(Rect(2, 16, 6, 1.5, fillColor=colors.HexColor("#4ca649"), strokeColor=None))
+    drawing.add(Rect(2, 10, 1.5, 6, fillColor=colors.HexColor("#4ca649"), strokeColor=None))
+    
+    drawing.add(Rect(14, 16, 6, 1.5, fillColor=colors.HexColor("#c27a39"), strokeColor=None))
+    drawing.add(Rect(18.5, 10, 1.5, 6, fillColor=colors.HexColor("#c27a39"), strokeColor=None))
+    
+    drawing.add(Rect(2, 4, 6, 1.5, fillColor=colors.HexColor("#c27a39"), strokeColor=None))
+    drawing.add(Rect(2, 4, 1.5, 6, fillColor=colors.HexColor("#c27a39"), strokeColor=None))
+    
+    drawing.add(Rect(14, 4, 6, 1.5, fillColor=colors.HexColor("#4ca649"), strokeColor=None))
+    drawing.add(Rect(18.5, 4, 1.5, 6, fillColor=colors.HexColor("#4ca649"), strokeColor=None))
+    
+    # Dots inside
+    drawing.add(Circle(5, 13, 0.8, fillColor=colors.HexColor("#4ca649"), strokeColor=None))
+    drawing.add(Circle(17, 13, 0.8, fillColor=colors.HexColor("#c27a39"), strokeColor=None))
+    drawing.add(Circle(5, 7, 0.8, fillColor=colors.HexColor("#c27a39"), strokeColor=None))
+    drawing.add(Circle(17, 7, 0.8, fillColor=colors.HexColor("#4ca649"), strokeColor=None))
+    
+    # Text "OpenDhi"
+    drawing.add(String(28, 6, "Open", fontName="Helvetica-Bold", fontSize=13, fillColor=colors.HexColor("#181816")))
+    drawing.add(String(63, 6, "Dhi", fontName="Helvetica", fontSize=13, fillColor=colors.HexColor("#181816")))
+    
+    return drawing
+
+
 # ---------------------------------------------------------------------------
 # GET /api/reports/{id}/export/pdf
 # ---------------------------------------------------------------------------
@@ -227,6 +257,10 @@ async def export_pdf(report_id: int):
     )
 
     elements = []
+
+    # OpenDhi Logo Header
+    elements.append(create_opendhi_logo_drawing())
+    elements.append(Spacer(1, 10))
 
     # Title & Metadata
     elements.append(Paragraph(f"Logistics Analytics Report: {report.title}", title_style))
