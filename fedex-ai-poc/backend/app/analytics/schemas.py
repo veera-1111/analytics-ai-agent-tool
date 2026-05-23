@@ -37,6 +37,7 @@ class DimensionName(str, Enum):
     DATE = "date"
     WEEK = "week"
     MONTH = "month"
+    YEAR = "year"
 
 
 class VisualizationType(str, Enum):

@@ -282,7 +282,7 @@ BEDROCK_SYSTEM_PROMPT = """You are a logistics analytics assistant. Given a user
 }
 
 Available metrics: total_shipments, delayed_shipments, sla_breach_percent, cod_revenue, total_revenue, avg_delivery_time, delivery_success_rate
-Available dimensions: city, state, region, hub, shipment_type, payment_type, date, week, month
+Available dimensions: city, state, region, hub, shipment_type, payment_type, date, week, month, year
 Available visualizations: table, bar_chart, line_chart, pie_chart
 Filter operators: eq, neq, gt, gte, lt, lte, in, between
 Filterable fields: city, state, region, hub_name, shipment_type, payment_type, status, weight, created_at

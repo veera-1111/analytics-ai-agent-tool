@@ -80,7 +80,7 @@ def validate_query(state: AgentState) -> AgentState:
                 if "dimensions" in loc_path:
                     val_str = str(inp).capitalize() if inp else "Input"
                     error_msgs.append(
-                        f"{val_str} is not a valid dimension. Please choose from city, state, region, hub, shipment_type, payment_type, date, week, or month. "
+                        f"{val_str} is not a valid dimension. Please choose from city, state, region, hub, shipment_type, payment_type, date, week, month, or year. "
                         "You can ask again, for example: 'show me delayed shipments grouped by month in bar chart'."
                     )
                 elif "metrics" in loc_path:

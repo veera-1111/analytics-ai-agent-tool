@@ -49,6 +49,7 @@ def _dimension_expr(dim: DimensionName):
         DimensionName.DATE: fn.DATE(Order.created_at),
         DimensionName.WEEK: fn.STRFTIME("%Y-W%W", Order.created_at),
         DimensionName.MONTH: fn.STRFTIME("%Y-%m", Order.created_at),
+        DimensionName.YEAR: fn.STRFTIME("%Y", Order.created_at),
     }
     return mapping[dim]
 
