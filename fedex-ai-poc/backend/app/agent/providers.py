@@ -130,19 +130,29 @@ class MockProvider(AIProvider):
         has_line = "line" in combined_user_input
         has_bar = "bar" in combined_user_input
         has_pie = "pie" in combined_user_input
+        has_table = "table" in combined_user_input
 
         if "delayed shipments" in last_assistant_msg.lower() or "delay" in combined_user_input:
-            if has_month and has_line:
-                return MOCK_RESPONSES["delayed shipments by month"]
+            if has_month and (has_line or has_bar or has_table):
+                resp = dict(MOCK_RESPONSES["delayed shipments by month"])
+                resp["semantic_query"] = dict(resp["semantic_query"])
+                if has_bar:
+                    resp["semantic_query"]["visualization"] = "bar_chart"
+                elif has_table:
+                    resp["semantic_query"]["visualization"] = "table"
+                else:
+                    resp["semantic_query"]["visualization"] = "line_chart"
+                return resp
             elif has_month:
                 return {
                     "type": "clarification",
                     "reply": "Great! And what **visualization format** do you prefer for delayed shipments by month (e.g., **line_chart** or **bar_chart**)?"
                 }
-            elif has_line:
+            elif has_line or has_bar or has_table:
+                viz_name = "bar chart" if has_bar else ("table" if has_table else "line chart")
                 return {
                     "type": "clarification",
-                    "reply": "Got it, line chart. And which **dimension** should we group delayed shipments by (e.g., **month**, **hub**, or **city**)?"
+                    "reply": f"Got it, {viz_name}. And which **dimension** should we group delayed shipments by (e.g., **month**, **hub**, or **city**)?"
                 }
             else:
                 return {
@@ -151,17 +161,28 @@ class MockProvider(AIProvider):
                 }
 
         if "total shipments" in last_assistant_msg.lower() or "shipment" in combined_user_input or "volume" in combined_user_input:
-            if has_region and has_bar:
-                return MOCK_RESPONSES["show me total shipments by region"]
+            if has_region and (has_bar or has_pie or has_line or has_table):
+                resp = dict(MOCK_RESPONSES["show me total shipments by region"])
+                resp["semantic_query"] = dict(resp["semantic_query"])
+                if has_pie:
+                    resp["semantic_query"]["visualization"] = "pie_chart"
+                elif has_line:
+                    resp["semantic_query"]["visualization"] = "line_chart"
+                elif has_table:
+                    resp["semantic_query"]["visualization"] = "table"
+                else:
+                    resp["semantic_query"]["visualization"] = "bar_chart"
+                return resp
             elif has_region:
                 return {
                     "type": "clarification",
                     "reply": "Great! And what **visualization format** do you prefer for total shipments by region (e.g., **bar_chart** or **pie_chart**)?"
                 }
-            elif has_bar:
+            elif has_bar or has_pie or has_line or has_table:
+                viz_name = "bar chart" if has_bar else ("pie chart" if has_pie else ("line chart" if has_line else "table"))
                 return {
                     "type": "clarification",
-                    "reply": "Got it, bar chart. And which **dimension** should we group total shipments by (e.g., **region**, **state**, or **hub**)?"
+                    "reply": f"Got it, {viz_name}. And which **dimension** should we group total shipments by (e.g., **region**, **state**, or **hub**)?"
                 }
             else:
                 return {
@@ -170,17 +191,26 @@ class MockProvider(AIProvider):
                 }
 
         if "sla breach rate" in last_assistant_msg.lower() or "sla" in combined_user_input or "breach" in combined_user_input:
-            if has_hub and has_bar:
-                return MOCK_RESPONSES["sla breach rate by hub"]
+            if has_hub and (has_bar or has_table or has_line):
+                resp = dict(MOCK_RESPONSES["sla breach rate by hub"])
+                resp["semantic_query"] = dict(resp["semantic_query"])
+                if has_table:
+                    resp["semantic_query"]["visualization"] = "table"
+                elif has_line:
+                    resp["semantic_query"]["visualization"] = "line_chart"
+                else:
+                    resp["semantic_query"]["visualization"] = "bar_chart"
+                return resp
             elif has_hub:
                 return {
                     "type": "clarification",
                     "reply": "Great! And what **visualization format** do you prefer for SLA breach rate by hub (e.g., **bar_chart** or **table**)?"
                 }
-            elif has_bar:
+            elif has_bar or has_table or has_line:
+                viz_name = "bar chart" if has_bar else ("table" if has_table else "line chart")
                 return {
                     "type": "clarification",
-                    "reply": "Got it, bar chart. And which **dimension** should we group SLA breach rate by (e.g., **hub** or **city**)?"
+                    "reply": f"Got it, {viz_name}. And which **dimension** should we group SLA breach rate by (e.g., **hub** or **city**)?"
                 }
             else:
                 return {
@@ -189,17 +219,28 @@ class MockProvider(AIProvider):
                 }
 
         if "revenue breakdown" in last_assistant_msg.lower() or "revenue" in combined_user_input or "payment" in combined_user_input or "cod" in combined_user_input:
-            if has_payment and has_pie:
-                return MOCK_RESPONSES["revenue breakdown by payment type"]
+            if has_payment and (has_pie or has_bar or has_table or has_line):
+                resp = dict(MOCK_RESPONSES["revenue breakdown by payment type"])
+                resp["semantic_query"] = dict(resp["semantic_query"])
+                if has_bar:
+                    resp["semantic_query"]["visualization"] = "bar_chart"
+                elif has_line:
+                    resp["semantic_query"]["visualization"] = "line_chart"
+                elif has_table:
+                    resp["semantic_query"]["visualization"] = "table"
+                else:
+                    resp["semantic_query"]["visualization"] = "pie_chart"
+                return resp
             elif has_payment:
                 return {
                     "type": "clarification",
                     "reply": "Great! And what **visualization format** do you prefer for revenue breakdown by payment type (e.g., **pie_chart** or **bar_chart**)?"
                 }
-            elif has_pie:
+            elif has_pie or has_bar or has_table or has_line:
+                viz_name = "pie chart" if has_pie else ("bar chart" if has_bar else ("table" if has_table else "line chart"))
                 return {
                     "type": "clarification",
-                    "reply": "Got it, pie chart. And which **dimension** should we group revenue breakdown by (e.g., **payment_type** or **city**)?"
+                    "reply": f"Got it, {viz_name}. And which **dimension** should we group revenue breakdown by (e.g., **payment_type** or **city**)?"
                 }
             else:
                 return {
