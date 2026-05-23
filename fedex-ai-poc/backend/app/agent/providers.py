@@ -275,7 +275,7 @@ BEDROCK_SYSTEM_PROMPT = """You are a logistics analytics assistant. Given a user
     "filters": [{"field": "<field>", "operator": "<op>", "value": "<val>"}],
     "visualization": "<viz_type>",
     "sort": [{"field": "<field>", "order": "asc|desc"}],
-    "limit": <number>,
+    "limit": <number between 1 and 10000, default is 100>,
     "title": "<report title>"
   },
   "reply": "<clarification text>"  // only when type is "clarification"
@@ -287,7 +287,12 @@ Available visualizations: table, bar_chart, line_chart, pie_chart
 Filter operators: eq, neq, gt, gte, lt, lte, in, between
 Filterable fields: city, state, region, hub_name, shipment_type, payment_type, status, weight, created_at
 
-If the user's intent is unclear or missing critical information, return type "clarification" with a helpful reply.
+CRITICAL REQUIREMENTS FOR DIALOGUE:
+1. If the user asks for a metric (e.g. delayed shipments, total shipments, revenue) but does not specify a grouping dimension (like month, region, hub, city) OR does not specify a preferred visualization format (like bar chart, line chart, table, pie chart), you MUST return type "clarification".
+2. In the clarification reply, ask the user to specify the missing grouping dimension and visualization preference. For example, if they ask "show me delayed shipments", ask: "Which dimension would you like to group delayed shipments by (e.g., month, hub, or city)? and what visualization format do you prefer (e.g., line_chart or bar_chart)?"
+3. If they specify the dimension but not the visualization (or vice versa) in a follow-up message, ask them to clarify the remaining missing parameter.
+4. Only return type "query" once both the dimension and visualization are fully resolved.
+
 Always return ONLY valid JSON. No markdown, no explanation."""
 
 
@@ -369,6 +374,17 @@ class BedrockProvider(AIProvider):
 
         # Validate — reject any raw SQL
         if "semantic_query" in parsed:
+            sq = parsed["semantic_query"]
+            if sq and "limit" in sq:
+                try:
+                    limit_val = int(sq["limit"])
+                    if limit_val < 1:
+                        sq["limit"] = 100
+                except (ValueError, TypeError):
+                    sq["limit"] = 100
+            elif sq:
+                sq["limit"] = 100
+
             sq_raw = json.dumps(parsed["semantic_query"]).lower()
             sql_keywords = ["select ", "insert ", "update ", "delete ", "drop ", "alter ", " from ", " where "]
             if any(kw in sq_raw for kw in sql_keywords):
