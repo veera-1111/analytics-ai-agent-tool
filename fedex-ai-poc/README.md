@@ -118,3 +118,22 @@ analytics-ai-agent-tool/
 - Final visual theme (OpenDhi-inspired) tokens are placeholders pending branding assets
 - CodeIgniter iframe placement details are pending integration with CI view routing
 
+## AWS ECS Fargate Deployment
+
+A detailed step-by-step guide is available in [docs/ecs-deployment.md](./docs/ecs-deployment.md). Here is the deployment workflow:
+
+1. **Build & Push Images**: Authenticate with AWS ECR and push the frontend and backend Docker images:
+   ```bash
+   bash scripts/build_and_push.sh <aws-account-id> <aws-region> <tag>
+   ```
+2. **Infrastructure Requirements**:
+   - Create an **Amazon EFS** (Elastic File System) volume to persist the SQLite database.
+   - Configure **Amazon ElastiCache Redis** for chat history tracking.
+   - Provision an **Application Load Balancer (ALB)** with routing rules targeting the Fargate tasks.
+3. **Register Task Definitions**: Update and register the task definitions located in `docs/ecs-deployment.md` mapping the EFS volume to `/data/analytics.db` in the backend task.
+4. **IAM Permissions**: Attach a Bedrock invocation policy (`bedrock:InvokeModel`) to the ECS Task Role for model access.
+5. **ALB Routing Config**:
+   - Route `/api/*` requests to the Backend Service Target Group.
+   - Route `/ai/*` and `/_next/*` requests to the Frontend Service Target Group.
+6. **Production Configuration**: Update environment variables (`ALLOWED_ORIGINS` and `FRAME_ANCESTORS`) to match the production domain of your CodeIgniter host application.
+
