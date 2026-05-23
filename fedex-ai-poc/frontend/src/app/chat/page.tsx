@@ -5,6 +5,17 @@ import ReactMarkdown from "react-markdown";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "/api";
 
+function generateUUID() {
+  if (typeof window !== "undefined" && window.crypto && typeof window.crypto.randomUUID === "function") {
+    return window.crypto.randomUUID();
+  }
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === "x" ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
+
 interface Message {
   id: string;
   role: "user" | "agent";
@@ -40,7 +51,7 @@ export default function ChatPage() {
     
     let sid = sessionStorage.getItem("chat_session_id");
     if (!sid) {
-      sid = crypto.randomUUID();
+      sid = generateUUID();
       sessionStorage.setItem("chat_session_id", sid);
     }
     setSessionId(sid);
@@ -54,7 +65,7 @@ export default function ChatPage() {
     if (!text.trim() || loading) return;
 
     const userMsg: Message = {
-      id: crypto.randomUUID(),
+      id: generateUUID(),
       role: "user",
       content: text.trim(),
     };
@@ -71,7 +82,7 @@ export default function ChatPage() {
       const data = await res.json();
 
       const agentMsg: Message = {
-        id: crypto.randomUUID(),
+        id: generateUUID(),
         role: "agent",
         content: data.reply || "No response received.",
         type: data.type || "text",
@@ -82,7 +93,7 @@ export default function ChatPage() {
       setMessages((prev) => [
         ...prev,
         {
-          id: crypto.randomUUID(),
+          id: generateUUID(),
           role: "agent",
           content: "Sorry, I couldn't reach the analytics service. Please try again.",
           type: "text",
