@@ -70,7 +70,30 @@ def validate_query(state: AgentState) -> AgentState:
         sq = SemanticQuery(**sq_data)
         state["semantic_query"] = sq
     except Exception as exc:
-        state["reply"] = f"Query validation failed: {exc}. Please try a different question."
+        from pydantic import ValidationError
+        if isinstance(exc, ValidationError):
+            error_msgs = []
+            for err in exc.errors():
+                loc_path = " -> ".join(str(l) for l in err["loc"])
+                msg = err["msg"]
+                inp = err.get("input")
+                if "Input should be" in msg:
+                    allowed_options = msg.split("Input should be")[-1].strip()
+                    error_msgs.append(
+                        f"The parameter '{loc_path}' has an invalid value '{inp}'. "
+                        f"Allowed values are: {allowed_options}"
+                    )
+                else:
+                    error_msgs.append(f"Invalid value for '{loc_path}': {msg}")
+            
+            state["reply"] = (
+                "I couldn't run that query because some parameters are invalid:\n"
+                + "\n".join(f"• {m}" for m in error_msgs)
+                + "\n\nPlease try rephrasing with supported options."
+            )
+        else:
+            state["reply"] = "Query validation failed. Please try a different question."
+            
         state["response_type"] = "clarification"
         state["semantic_query"] = None
 
