@@ -5,23 +5,23 @@
 @tailwind utilities;
 
 :root {
-  --bg-primary: #ffffff;
-  --bg-secondary: #f8fafc;
-  --text-primary: #0f172a;
-  --text-secondary: #475569;
-  --border-color: #e2e8f0;
-  --accent: #4f46e5;
-  --accent-hover: #4338ca;
+  --bg-primary: #faf9f6;
+  --bg-secondary: #f5f4ef;
+  --text-primary: #181816;
+  --text-secondary: #4a4a42;
+  --border-color: #e5e4de;
+  --accent: #c27a39;
+  --accent-hover: #a6622b;
 }
 
 .dark {
-  --bg-primary: #0f172a;
-  --bg-secondary: #1e293b;
-  --text-primary: #f1f5f9;
-  --text-secondary: #94a3b8;
-  --border-color: #334155;
-  --accent: #818cf8;
-  --accent-hover: #6366f1;
+  --bg-primary: #181816;
+  --bg-secondary: #242422;
+  --text-primary: #faf9f6;
+  --text-secondary: #a0a095;
+  --border-color: #383835;
+  --accent: #dca36d;
+  --accent-hover: #c27a39;
 }
 
 body {

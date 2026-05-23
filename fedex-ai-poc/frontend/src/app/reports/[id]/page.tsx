@@ -209,17 +209,18 @@ function ChartView({
       tooltip: { trigger: "axis" },
       xAxis: { type: "category", data: labels, axisLabel: { rotate: 45 } },
       yAxis: { type: "value" },
-      series: [{ data: values, type: "bar", itemStyle: { color: "#4f46e5" } }],
+      series: [{ data: values, type: "bar", itemStyle: { color: "#c27a39" } }],
     };
   } else if (type === "line_chart") {
     option = {
       tooltip: { trigger: "axis" },
       xAxis: { type: "category", data: labels },
       yAxis: { type: "value" },
-      series: [{ data: values, type: "line", smooth: true, itemStyle: { color: "#4f46e5" } }],
+      series: [{ data: values, type: "line", smooth: true, itemStyle: { color: "#c27a39" } }],
     };
   } else if (type === "pie_chart") {
     option = {
+      color: ["#c27a39", "#319795", "#4a5568", "#dd6b20", "#805ad5", "#e53e3e"],
       tooltip: { trigger: "item" },
       series: [
         {

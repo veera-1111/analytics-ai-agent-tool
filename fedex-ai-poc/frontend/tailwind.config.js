@@ -9,24 +9,24 @@ module.exports = {
       colors: {
         /* Placeholder theme tokens — will be replaced with OpenDhi theme */
         primary: {
-          50: "#eef2ff",
-          100: "#e0e7ff",
-          200: "#c7d2fe",
-          300: "#a5b4fc",
-          400: "#818cf8",
-          500: "#6366f1",
-          600: "#4f46e5",
-          700: "#4338ca",
-          800: "#3730a3",
-          900: "#312e81",
+          50: "#fdf8f4",
+          100: "#faf0e6",
+          200: "#f4dbcc",
+          300: "#ebbd9b",
+          400: "#e09a63",
+          500: "#c27a39",
+          600: "#a6622b",
+          700: "#8b4d1f",
+          800: "#703a16",
+          900: "#5a2d10",
         },
         surface: {
-          light: "#ffffff",
-          dark: "#0f172a",
+          light: "#faf9f6",
+          dark: "#181816",
         },
         muted: {
-          light: "#f1f5f9",
-          dark: "#1e293b",
+          light: "#f5f4ef",
+          dark: "#242422",
         },
       },
       fontFamily: {

@@ -79,7 +79,7 @@ def create_bar_chart(data, x_labels, width=440):
     chart.valueAxis.valueMin = 0
     chart.valueAxis.labels.fontSize = 7
     
-    chart.bars[0].fillColor = colors.HexColor("#2B6CB0")
+    chart.bars[0].fillColor = colors.HexColor("#c27a39")
     chart.valueAxis.visibleGrid = 1
     chart.valueAxis.gridStrokeColor = colors.HexColor("#E2E8F0")
     chart.valueAxis.gridStrokeWidth = 0.5
@@ -120,7 +120,7 @@ def create_line_chart(data, x_labels, width=440):
     chart.yValueAxis.gridStrokeColor = colors.HexColor("#E2E8F0")
     chart.yValueAxis.gridStrokeWidth = 0.5
     
-    chart.lines[0].strokeColor = colors.HexColor("#2B6CB0")
+    chart.lines[0].strokeColor = colors.HexColor("#c27a39")
     chart.lines[0].strokeWidth = 2
     
     drawing.add(chart)
@@ -144,7 +144,7 @@ def create_pie_chart(data, x_labels, width=440):
     chart.slices.strokeColor = colors.white
     
     palette = [
-        colors.HexColor("#2B6CB0"),
+        colors.HexColor("#c27a39"),
         colors.HexColor("#319795"),
         colors.HexColor("#4A5568"),
         colors.HexColor("#DD6B20"),
@@ -197,7 +197,7 @@ async def export_pdf(report_id: int):
         parent=styles['Heading1'],
         fontSize=20,
         leading=24,
-        textColor=colors.HexColor("#1A365D"),
+        textColor=colors.HexColor("#181816"),
         spaceAfter=12
     )
     
@@ -309,7 +309,7 @@ async def export_pdf(report_id: int):
     t = Table(table_data, colWidths=col_widths, repeatRows=1)
     
     t.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor("#2B6CB0")),
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor("#c27a39")),
         ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
         ('BOTTOMPADDING', (0, 0), (-1, 0), 8),
