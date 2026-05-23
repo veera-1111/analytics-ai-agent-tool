@@ -74,23 +74,29 @@ def validate_query(state: AgentState) -> AgentState:
         if isinstance(exc, ValidationError):
             error_msgs = []
             for err in exc.errors():
-                loc_path = " -> ".join(str(l) for l in err["loc"])
-                msg = err["msg"]
+                loc_path = [str(l) for l in err["loc"]]
                 inp = err.get("input")
-                if "Input should be" in msg:
-                    allowed_options = msg.split("Input should be")[-1].strip()
+                
+                if "dimensions" in loc_path:
+                    val_str = str(inp).capitalize() if inp else "Input"
                     error_msgs.append(
-                        f"The parameter '{loc_path}' has an invalid value '{inp}'. "
-                        f"Allowed values are: {allowed_options}"
+                        f"{val_str} is not a valid dimension. Please choose from city, state, region, hub, shipment_type, payment_type, date, week, or month. "
+                        "You can ask again, for example: 'show me delayed shipments grouped by month in bar chart'."
+                    )
+                elif "metrics" in loc_path:
+                    val_str = str(inp).capitalize() if inp else "Input"
+                    error_msgs.append(
+                        f"{val_str} is not a valid metric. Please choose from total_shipments, delayed_shipments, sla_breach_percent, cod_revenue, total_revenue, avg_delivery_time, or delivery_success_rate."
+                    )
+                elif "visualization" in loc_path:
+                    val_str = str(inp).capitalize() if inp else "Input"
+                    error_msgs.append(
+                        f"{val_str} is not a valid visualization. Please choose from table, bar_chart, line_chart, or pie_chart."
                     )
                 else:
-                    error_msgs.append(f"Invalid value for '{loc_path}': {msg}")
+                    error_msgs.append(f"Invalid value for '{' -> '.join(loc_path)}': {err['msg']}")
             
-            state["reply"] = (
-                "I couldn't run that query because some parameters are invalid:\n"
-                + "\n".join(f"• {m}" for m in error_msgs)
-                + "\n\nPlease try rephrasing with supported options."
-            )
+            state["reply"] = "\n".join(error_msgs)
         else:
             state["reply"] = "Query validation failed. Please try a different question."
             
