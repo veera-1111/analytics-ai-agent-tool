@@ -225,6 +225,7 @@ function ChartView({
   if (type === "bar_chart") {
     option = {
       tooltip: { trigger: "axis" },
+      grid: { left: "3%", right: "4%", bottom: "3%", containLabel: true },
       xAxis: { type: "category", data: labels, axisLabel: { rotate: 45 } },
       yAxis: { type: "value" },
       series: [{ data: values, type: "bar", itemStyle: { color: "#c27a39" } }],
@@ -232,6 +233,7 @@ function ChartView({
   } else if (type === "line_chart") {
     option = {
       tooltip: { trigger: "axis" },
+      grid: { left: "3%", right: "4%", bottom: "3%", containLabel: true },
       xAxis: { type: "category", data: labels },
       yAxis: { type: "value" },
       series: [{ data: values, type: "line", smooth: true, itemStyle: { color: "#c27a39" } }],
