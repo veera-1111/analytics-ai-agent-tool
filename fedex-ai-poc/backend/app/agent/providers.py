@@ -110,14 +110,16 @@ class MockProvider(AIProvider):
                 return response
 
         # Keyword-based fallback
-        if "shipment" in normalised and "region" in normalised:
-            return MOCK_RESPONSES["show me total shipments by region"]
-        if "delay" in normalised and "month" in normalised:
+        if "delay" in normalised or "late" in normalised:
             return MOCK_RESPONSES["delayed shipments by month"]
         if "sla" in normalised or "breach" in normalised:
             return MOCK_RESPONSES["sla breach rate by hub"]
-        if "revenue" in normalised or "payment" in normalised:
+        if "revenue" in normalised or "payment" in normalised or "cod" in normalised:
             return MOCK_RESPONSES["revenue breakdown by payment type"]
+        if "express" in normalised or "standard" in normalised or "success" in normalised:
+            return MOCK_RESPONSES["compare express vs standard delivery success"]
+        if "shipment" in normalised or "volume" in normalised or "total" in normalised or "region" in normalised:
+            return MOCK_RESPONSES["show me total shipments by region"]
 
         # Clarification for unknown queries
         return {
