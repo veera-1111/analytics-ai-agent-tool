@@ -44,7 +44,7 @@ A proof-of-concept analytics AI agent that provides natural language querying of
 
 ## Quick Start
 
-See [LOCAL_RUN.md](./fedex-ai-poc/LOCAL_RUN.md) for detailed setup instructions.
+See [LOCAL_RUN.md](./LOCAL_RUN.md) for detailed setup instructions.
 
 ```bash
 cd fedex-ai-poc
@@ -52,13 +52,16 @@ cd fedex-ai-poc
 # Copy environment template
 cp .env.example .env
 
-# Build and start all services
+# Build and start all services (Redis maps to host port 6389 to avoid local conflict)
 docker compose build
 docker compose up -d
 
-# Initialize database and seed sample data
+# Initialize database and seed sample data (25,000 records)
 docker compose exec backend python -m app.database.init
 docker compose exec backend python -m app.database.seed --profile sample
+
+# Run the automated verification/validation test suite
+bash scripts/validate_local.sh
 
 # Access the application
 open http://localhost:8080/ai/chat
@@ -92,9 +95,9 @@ analytics-ai-agent-tool/
     ├── frontend/                # Next.js 14 frontend
     │   ├── Dockerfile
     │   └── src/
-    │       └── app/ai/
-    │           ├── chat/        # Chat widget
-    │           └── reports/     # Report permalink pages
+    │       └── app/
+    │           ├── chat/        # Chat widget (/ai/chat)
+    │           └── reports/     # Report permalink pages (/ai/reports/[id])
     ├── infrastructure/
     │   └── nginx/               # Reverse proxy config
     └── scripts/                 # Helper scripts
@@ -106,10 +109,12 @@ analytics-ai-agent-tool/
 - **Peewee ORM + SQLite**: Lightweight, zero-configuration database supporting 2M+ rows with proper indexing
 - **Safe Semantic Queries**: LLM produces structured JSON, never raw SQL — backend translates via Peewee query builders
 - **Mock AI Provider**: Deterministic local demos without AWS credentials (`AI_PROVIDER=mock`)
+- **Port Conflict Safeguards**: Redis mapped to `6389` on host to prevent conflicts with standard host services
 
 ## Known POC Limitations
 
 - SQLite is single-writer; concurrent write-heavy workloads may need PostgreSQL migration
-- PDF export requires Chromium in the container, increasing image size
-- Final visual theme (OpenDhi-inspired) tokens are pending
-- CodeIgniter iframe placement details are pending
+- PDF export currently streams data JSON payload; full layout generation requires Puppeteer/Chromium container layer
+- Final visual theme (OpenDhi-inspired) tokens are placeholders pending branding assets
+- CodeIgniter iframe placement details are pending integration with CI view routing
+
