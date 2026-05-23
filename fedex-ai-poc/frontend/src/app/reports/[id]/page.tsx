@@ -95,25 +95,44 @@ export default function ReportPage() {
     <div className={`${isEmbedded ? "" : "min-h-screen"} bg-surface-light dark:bg-surface-dark`}>
       {/* Header */}
       {!isEmbedded && (
-        <header className="border-b border-[var(--border-color)] px-6 py-4">
+        <header className="border-b border-[var(--border-color)] px-6 py-4 bg-white dark:bg-surface-dark shadow-xs">
           <div className="flex items-center justify-between max-w-7xl mx-auto">
-            <div>
-              <h1 className="text-xl font-semibold">{meta.title}</h1>
-              <p className="text-sm text-[var(--text-secondary)] mt-1">
-                Generated {new Date(meta.created_at).toLocaleString()} · {reportData.total_rows} rows
-              </p>
+            <div className="flex items-center gap-3">
+              <svg className="h-8 w-auto" viewBox="0 0 120 30" fill="none" xmlns="http://www.w3.org/2000/svg">
+                {/* Corner brackets */}
+                <path d="M2 8V2H8" stroke="#4ca649" strokeWidth="2.5" strokeLinecap="round" />
+                <path d="M22 8V2H16" stroke="#c27a39" strokeWidth="2.5" strokeLinecap="round" />
+                <path d="M2 16v6h6" stroke="#c27a39" strokeWidth="2.5" strokeLinecap="round" />
+                <path d="M22 16v6h-6" stroke="#4ca649" strokeWidth="2.5" strokeLinecap="round" />
+                
+                {/* Dots inside brackets */}
+                <circle cx="8" cy="8" r="1.5" fill="#4ca649" />
+                <circle cx="16" cy="8" r="1.5" fill="#c27a39" />
+                <circle cx="8" cy="16" r="1.5" fill="#c27a39" />
+                <circle cx="16" cy="16" r="1.5" fill="#4ca649" />
+
+                <text x="32" y="18" fontFamily="system-ui, -apple-system, sans-serif" fontSize="15" fontWeight="800" fill="currentColor" className="text-[var(--text-primary)]">Open</text>
+                <text x="71" y="18" fontFamily="system-ui, -apple-system, sans-serif" fontSize="15" fontWeight="400" fill="currentColor" className="text-[var(--text-primary)]">Dhi</text>
+              </svg>
+              <div className="h-6 w-px bg-[var(--border-color)] mx-1" />
+              <div>
+                <h1 className="text-sm font-semibold text-[var(--text-primary)]">{meta.title}</h1>
+                <p className="text-[10px] text-[var(--text-secondary)] leading-none mt-0.5">
+                  Generated {new Date(meta.created_at).toLocaleString()} · {reportData.total_rows} rows
+                </p>
+              </div>
             </div>
             <div className="flex gap-2">
               <a
                 href={`${API_BASE}/reports/${reportId}/export/excel`}
-                className="px-4 py-2 text-sm rounded-lg border border-[var(--border-color)] hover:bg-muted-light dark:hover:bg-muted-dark transition-colors"
+                className="px-4 py-2 text-sm font-medium rounded-lg border border-[var(--border-color)] hover:bg-muted-light dark:hover:bg-muted-dark transition-colors flex items-center gap-1.5"
                 id="export-excel-btn"
               >
                 📊 Excel
               </a>
               <a
                 href={`${API_BASE}/reports/${reportId}/export/pdf`}
-                className="px-4 py-2 text-sm rounded-lg border border-[var(--border-color)] hover:bg-muted-light dark:hover:bg-muted-dark transition-colors"
+                className="px-4 py-2 text-sm font-medium rounded-lg border border-[var(--border-color)] hover:bg-muted-light dark:hover:bg-muted-dark transition-colors flex items-center gap-1.5"
                 id="export-pdf-btn"
               >
                 📄 PDF
