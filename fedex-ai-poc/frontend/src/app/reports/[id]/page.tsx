@@ -1,19 +1,21 @@
 "use client";
 
-import { useEffect, useState } from "react";
+export const dynamic = "force-dynamic";
+
+import { useEffect, useState, Suspense } from "react";
 import { useParams, useSearchParams } from "next/navigation";
-import dynamic from "next/dynamic";
+import nextDynamic from "next/dynamic";
 import "ag-grid-community/styles/ag-grid.css";
 import "ag-grid-community/styles/ag-theme-alpine.css";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "/api";
 
 // Dynamic imports for heavy chart/grid libs
-const AgGridReact = dynamic(
+const AgGridReact = nextDynamic(
   () => import("ag-grid-react").then((mod) => mod.AgGridReact),
   { ssr: false }
 );
-const ReactECharts = dynamic(() => import("echarts-for-react"), { ssr: false });
+const ReactECharts = nextDynamic(() => import("echarts-for-react"), { ssr: false });
 
 interface ReportMeta {
   id: number;
@@ -35,7 +37,7 @@ interface ReportData {
   total_rows: number;
 }
 
-export default function ReportPage() {
+function ReportPageInner() {
   const params = useParams();
   const searchParams = useSearchParams();
   const reportId = params?.id as string;
@@ -301,6 +303,14 @@ export default function ReportPage() {
   );
 }
 
+export default function ReportPage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center h-screen"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600" /></div>}>
+      <ReportPageInner />
+    </Suspense>
+  );
+}
+
 // ---------------------------------------------------------------------------
 // AG Grid table view
 // ---------------------------------------------------------------------------
@@ -313,7 +323,7 @@ function TableView({
   data: Record<string, any>[];
   isEmbedded?: boolean;
 }) {
-  const columnDefs = columns.map((col) => ({
+  const columnDefs: import("ag-grid-community").ColDef[] = columns.map((col) => ({
     field: col,
     headerName: col.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
     sortable: true,
