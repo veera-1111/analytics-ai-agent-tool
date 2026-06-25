@@ -8,10 +8,14 @@ import { useRouter } from "next/navigation";
 // basePath is /ai — router.push uses paths relative to basePath
 
 import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import nextDynamic from "next/dynamic";
 import QuantixLogo from "@/components/QuantixLogo";
 import ConnectionSelector from "@/components/ConnectionSelector";
 import { api } from "@/lib/api";
-import { isDemoMode, getDemoResponse } from "@/lib/demoData";
+import { isDemoMode, getDemoResponse, ChartDataset } from "@/lib/demoData";
+
+const ReactECharts = nextDynamic(() => import("echarts-for-react"), { ssr: false });
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "/api";
 
@@ -90,6 +94,7 @@ interface Message {
   content: string;
   type?: "text" | "report" | "clarification";
   reportUrl?: string;
+  charts?: ChartDataset[];
 }
 
 const SUGGESTIONS = [
@@ -147,12 +152,11 @@ export default function ChatPage() {
     setLoading(true);
 
     if (isDemoMode(connectionId)) {
-      // Simulate a short thinking delay for realism
       await new Promise(r => setTimeout(r, 800));
       const demo = getDemoResponse(text.trim());
       setMessages((prev) => [
         ...prev,
-        { id: generateUUID(), role: "agent", content: demo.reply, type: demo.type },
+        { id: generateUUID(), role: "agent", content: demo.reply, type: demo.type, charts: demo.charts },
       ]);
       setLoading(false);
       return;
@@ -267,14 +271,35 @@ export default function ChatPage() {
               {msg.role === "agent" ? (
                 <div className="prose prose-sm dark:prose-invert max-w-none">
                   <ReactMarkdown
+                    remarkPlugins={[remarkGfm]}
                     components={{
                       a: ({ node, ...props }) => (
                         <a target="_blank" rel="noopener noreferrer" {...props} />
-                      )
+                      ),
+                      table: ({ node, ...props }) => (
+                        <div className="overflow-x-auto my-3">
+                          <table className="min-w-full text-xs border-collapse" {...props} />
+                        </div>
+                      ),
+                      th: ({ node, ...props }) => (
+                        <th className="px-3 py-2 bg-gray-100 dark:bg-gray-800 text-left font-semibold border border-gray-200 dark:border-gray-700" {...props} />
+                      ),
+                      td: ({ node, ...props }) => (
+                        <td className="px-3 py-2 border border-gray-200 dark:border-gray-700" {...props} />
+                      ),
                     }}
                   >
                     {msg.content}
                   </ReactMarkdown>
+
+                  {/* Demo charts grid */}
+                  {msg.charts && msg.charts.length > 0 && (
+                    <div className={`mt-4 grid gap-4 ${msg.charts.length === 1 ? "grid-cols-1" : "grid-cols-1 sm:grid-cols-2"}`}>
+                      {msg.charts.map((chart, i) => (
+                        <DemoChartCard key={i} chart={chart} />
+                      ))}
+                    </div>
+                  )}
                   
                   {/* Dynamically parsed suggestion CTA chips */}
                   {(() => {
@@ -379,6 +404,68 @@ export default function ChatPage() {
           </svg>
         </button>
       </form>
+    </div>
+  );
+}
+
+function DemoChartCard({ chart }: { chart: ChartDataset }) {
+  const PIE_COLORS = ["#6366f1", "#22c55e", "#f59e0b", "#ef4444", "#8b5cf6", "#06b6d4"];
+
+  let option: object = {};
+
+  if (chart.chartType === "bar") {
+    option = {
+      tooltip: { trigger: "axis" },
+      grid: { left: "3%", right: "4%", bottom: "14%", top: "12%", containLabel: true },
+      xAxis: {
+        type: "category",
+        data: chart.labels,
+        axisLabel: { rotate: chart.labels.length > 4 ? 30 : 0, fontSize: 11 },
+      },
+      yAxis: { type: "value", name: chart.valueLabel, nameTextStyle: { fontSize: 11 } },
+      series: [{
+        data: chart.values,
+        type: "bar",
+        barMaxWidth: 48,
+        itemStyle: { color: chart.color ?? "#6366f1", borderRadius: [4, 4, 0, 0] },
+      }],
+    };
+  } else if (chart.chartType === "line") {
+    option = {
+      tooltip: { trigger: "axis" },
+      grid: { left: "3%", right: "4%", bottom: "8%", top: "12%", containLabel: true },
+      xAxis: { type: "category", data: chart.labels, axisLabel: { fontSize: 11 } },
+      yAxis: { type: "value", name: chart.valueLabel, nameTextStyle: { fontSize: 11 } },
+      series: [{
+        data: chart.values,
+        type: "line",
+        smooth: true,
+        symbol: "circle",
+        symbolSize: 6,
+        lineStyle: { color: chart.color ?? "#f59e0b", width: 2 },
+        itemStyle: { color: chart.color ?? "#f59e0b" },
+        areaStyle: { color: { type: "linear", x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: (chart.color ?? "#f59e0b") + "44" }, { offset: 1, color: "transparent" }] } },
+      }],
+    };
+  } else {
+    option = {
+      tooltip: { trigger: "item", formatter: "{b}: {d}%" },
+      legend: { orient: "vertical", right: "2%", top: "middle", textStyle: { fontSize: 11 }, itemWidth: 10 },
+      series: [{
+        type: "pie",
+        radius: ["38%", "65%"],
+        center: ["38%", "50%"],
+        data: chart.labels.map((l, i) => ({ name: l, value: chart.values[i], itemStyle: { color: PIE_COLORS[i % PIE_COLORS.length] } })),
+        label: { show: false },
+        emphasis: { label: { show: true, fontSize: 12, fontWeight: "bold" } },
+      }],
+    };
+  }
+
+  return (
+    <div className="rounded-xl border border-[var(--border-color)] bg-white dark:bg-slate-800 p-3 shadow-sm">
+      <p className="text-xs font-semibold text-[var(--text-secondary)] mb-2 uppercase tracking-wide">{chart.title}</p>
+      <ReactECharts option={option} style={{ height: 220 }} />
     </div>
   );
 }
