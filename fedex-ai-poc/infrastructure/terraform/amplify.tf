@@ -27,7 +27,6 @@ resource "aws_amplify_app" "frontend" {
 
   environment_variables = {
     NEXT_PUBLIC_API_BASE_URL = "${aws_apigatewayv2_api.backend.api_endpoint}/api"
-    AMPLIFY_MONOREPO_APP_ROOT = "fedex-ai-poc/frontend"
     _LIVE_UPDATES = "[{\"name\":\"Next.js version\",\"pkg\":\"next-version\",\"type\":\"internal\",\"version\":\"latest\"}]"
   }
 
