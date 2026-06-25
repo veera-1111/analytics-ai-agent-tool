@@ -2,6 +2,7 @@
 resource "aws_amplify_app" "frontend" {
   name       = "${local.name_prefix}-frontend"
   repository = "https://github.com/veera-1111/${var.github_repo_name}"
+  platform   = "WEB_COMPUTE"
 
   access_token = var.amplify_github_token
 
