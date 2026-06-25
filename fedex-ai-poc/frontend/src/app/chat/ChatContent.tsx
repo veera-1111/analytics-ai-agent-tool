@@ -11,6 +11,7 @@ import ReactMarkdown from "react-markdown";
 import QuantixLogo from "@/components/QuantixLogo";
 import ConnectionSelector from "@/components/ConnectionSelector";
 import { api } from "@/lib/api";
+import { isDemoMode, getDemoResponse } from "@/lib/demoData";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "/api";
 
@@ -126,7 +127,7 @@ export default function ChatPage() {
     setSessionId(sid);
     const connId = localStorage.getItem("quantixai_connection_id");
     if (!connId) { router.push("/connect"); return; }
-    setConnectionId(connId);
+    setConnectionId(connId); // "demo" is a valid connection ID handled by demo mode
   }, []);
 
   useEffect(() => {
@@ -144,6 +145,18 @@ export default function ChatPage() {
     setMessages((prev) => [...prev, userMsg]);
     setInput("");
     setLoading(true);
+
+    if (isDemoMode(connectionId)) {
+      // Simulate a short thinking delay for realism
+      await new Promise(r => setTimeout(r, 800));
+      const demo = getDemoResponse(text.trim());
+      setMessages((prev) => [
+        ...prev,
+        { id: generateUUID(), role: "agent", content: demo.reply, type: demo.type },
+      ]);
+      setLoading(false);
+      return;
+    }
 
     try {
       const res = await fetch(`${API_BASE}/chat`, {
@@ -185,6 +198,19 @@ export default function ChatPage() {
 
   return (
     <div className={`flex flex-col ${isEmbedded ? "h-screen" : "h-screen max-w-6xl mx-auto"} bg-surface-light dark:bg-surface-dark`}>
+      {/* Demo mode banner */}
+      {isDemoMode(connectionId) && (
+        <div className="flex items-center justify-between px-4 py-2 bg-amber-50 dark:bg-amber-900/20 border-b border-amber-200 dark:border-amber-700 text-xs text-amber-800 dark:text-amber-300">
+          <span>✨ <strong>Demo mode</strong> — exploring with sample logistics data. No real database connected.</span>
+          <button
+            onClick={() => router.push("/connect")}
+            className="ml-4 px-3 py-1 rounded-full bg-amber-200 dark:bg-amber-800 hover:bg-amber-300 dark:hover:bg-amber-700 font-medium transition-colors whitespace-nowrap"
+          >
+            Connect real DB →
+          </button>
+        </div>
+      )}
+
       {/* Header — hidden in embedded mode */}
       {!isEmbedded && (
         <header className="flex items-center justify-between px-6 py-4 border-b border-[var(--border-color)] bg-white dark:bg-surface-dark shadow-xs">

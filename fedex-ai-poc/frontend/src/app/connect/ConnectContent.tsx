@@ -81,6 +81,32 @@ export default function ConnectPage() {
                     </svg>
                   </button>
                 ))}
+
+                {/* Divider */}
+                <div className="flex items-center gap-3 py-1">
+                  <div className="flex-1 h-px bg-[var(--border-color)]" />
+                  <span className="text-xs text-[var(--text-secondary)]">or</span>
+                  <div className="flex-1 h-px bg-[var(--border-color)]" />
+                </div>
+
+                {/* Demo mode option */}
+                <button
+                  onClick={() => {
+                    localStorage.setItem("quantixai_connection_id", "demo");
+                    localStorage.setItem("quantixai_connection_name", "Demo — Sample Logistics Data");
+                    router.push("/chat");
+                  }}
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl border-2 border-dashed border-primary-300 dark:border-primary-700 hover:border-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-colors text-left"
+                >
+                  <span className="text-2xl">✨</span>
+                  <div>
+                    <p className="font-medium text-sm text-primary-700 dark:text-primary-300">I just want to explore</p>
+                    <p className="text-xs text-[var(--text-secondary)]">Try with sample logistics data — no database needed</p>
+                  </div>
+                  <svg className="ml-auto w-4 h-4 text-primary-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
               </div>
             </>
           )}
