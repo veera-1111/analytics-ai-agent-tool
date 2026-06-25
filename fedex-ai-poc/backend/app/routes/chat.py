@@ -1,85 +1,77 @@
-"""
-Chat API route.
+import uuid
+import logging
+import time
+from typing import Any
 
-POST /api/chat — send a user message through the LangGraph agent workflow.
-No authentication checks. Session is tracked by optional session_id.
-"""
+from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel
 
-import json
-import redis
-from fastapi import APIRouter
+from app.agent.claude_agent import ClaudeAgent
+from app.database.session import get_table
+from app.database.models import TABLES, report_item, conversation_log_item
+from app.session.store import DynamoSessionStore
 
-from app.agent.agent import agent_graph
-from app.analytics.schemas import ChatRequest, ChatResponse
-from app.config import settings
-from app.database.models import ConversationLog
-
+logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api", tags=["chat"])
 
-# Connect to Redis
-try:
-    redis_client = redis.from_url(settings.redis_url, decode_responses=True)
-except Exception:
-    redis_client = None
+
+class ChatRequest(BaseModel):
+    message: str
+    session_id: str | None = None
+    connection_id: str | None = None
+
+
+class ChatResponse(BaseModel):
+    reply: str
+    type: str
+    report_id: str | None = None
+    report_url: str | None = None
+    sql_query: str | None = None
+    session_id: str
 
 
 @router.post("/chat", response_model=ChatResponse)
-async def chat(req: ChatRequest):
-    """Process a user chat message through the analytics agent."""
-    session_key = f"chat_history:{req.session_id}" if req.session_id else None
-    history = []
+async def chat(req: ChatRequest) -> Any:
+    if not req.connection_id:
+        raise HTTPException(
+            status_code=400,
+            detail={"error": "No database connected. Please connect a database first.", "action": "connect_db"},
+        )
 
-    # Load history from Redis
-    if redis_client and session_key:
-        try:
-            history_data = redis_client.get(session_key)
-            if history_data:
-                history = json.loads(history_data)
-        except Exception:
-            pass
+    session_id = req.session_id or str(uuid.uuid4())
+    history = await DynamoSessionStore.get_history(session_id)
+    result = await ClaudeAgent.run(req.message, req.connection_id, history)
 
-    # Invoke agent
-    state = {
-        "user_message": req.message,
-        "chat_history": history,
-    }
+    await DynamoSessionStore.append(session_id, "user", req.message)
+    await DynamoSessionStore.append(session_id, "assistant", result["reply"])
 
-    result = agent_graph.invoke(state)
+    expires_at = int(time.time()) + 86400
+    now = __import__("datetime").datetime.now(__import__("datetime").timezone.utc).isoformat()
 
-    # Save updated history back to Redis
-    if redis_client and session_key:
-        try:
-            # We save history in Bedrock-compatible structure:
-            # list of {"role": "user"|"assistant", "content": "..."}
-            history.append({"role": "user", "content": req.message})
-            history.append({"role": "assistant", "content": result.get("reply", "")})
-            
-            # Save up to last 20 messages, expire in 24 hours
-            redis_client.setex(session_key, 86400, json.dumps(history[-20:]))
-        except Exception:
-            pass
+    logs_table = get_table(TABLES["conversation_logs"])
+    logs_table.put_item(Item=conversation_log_item(session_id, now + "_user", "user", req.message, req.connection_id, expires_at))
+    logs_table.put_item(Item=conversation_log_item(session_id, now + "_agent", "agent", result["reply"], req.connection_id, expires_at))
 
-    # Persist conversation log to SQLite database
-    try:
-        if req.session_id:
-            ConversationLog.create(
-                session_id=req.session_id,
-                role="user",
-                content=req.message
-            )
-            ConversationLog.create(
-                session_id=req.session_id,
-                role="agent",
-                content=result.get("reply", "")
-            )
-    except Exception as e:
-        print(f"Error logging conversation to DB: {e}")
+    report_id = None
+    report_url = None
+
+    if result.get("response_type") == "report" and result.get("sql_query"):
+        report_id = str(uuid.uuid4())
+        get_table(TABLES["reports"]).put_item(Item=report_item(
+            report_id=report_id,
+            connection_id=req.connection_id,
+            title=req.message[:200],
+            sql_query=result["sql_query"],
+            created_at=now,
+            expires_at=int(time.time()) + 86400 * 30,
+        ))
+        report_url = f"/ai/reports/{report_id}"
 
     return ChatResponse(
-        reply=result.get("reply", ""),
+        reply=result["reply"],
         type=result.get("response_type", "text"),
-        report_id=result.get("report_id"),
-        report_url=f"/ai/reports/{result['report_id']}" if result.get("report_id") else None,
-        semantic_query=result.get("semantic_query"),
+        report_id=report_id,
+        report_url=report_url,
+        sql_query=result.get("sql_query"),
+        session_id=session_id,
     )
-

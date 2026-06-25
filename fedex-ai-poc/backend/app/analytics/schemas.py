@@ -122,9 +122,13 @@ class ChatResponse(BaseModel):
     report_id: Optional[int] = None
     report_url: Optional[str] = None
     semantic_query: Optional[SemanticQuery] = None
+    sql_query: Optional[str] = None
+    query_info: Optional[dict] = None
 
 
 class ReportGenerateRequest(BaseModel):
     """Request to generate and save a report."""
-    semantic_query: SemanticQuery
+    semantic_query: Optional[SemanticQuery] = None
+    sql_query: Optional[str] = None
+    query_info: Optional[dict] = None
     title: str = "Analytics Report"

@@ -1,33 +1,12 @@
 """
-Database initialisation script.
-
-Usage:
-    python -m app.database.init          # uses DB_PATH env or /data/analytics.db
-    python -m app.database.init --path ./analytics.db
+No-op init — DynamoDB tables are created by Terraform.
+Kept so lifespan hook in main.py can call create_tables() without changes.
 """
 
-import argparse
-import sys
+import logging
 
-from app.database.models import ALL_MODELS, db, init_db
-
-
-def create_tables():
-    """Create all tables and indexes if they don't exist."""
-    with db:
-        db.create_tables(ALL_MODELS, safe=True)
-    print(f"✓ Created {len(ALL_MODELS)} tables: {[m.__name__ for m in ALL_MODELS]}")
+logger = logging.getLogger(__name__)
 
 
-def main():
-    parser = argparse.ArgumentParser(description="Initialise the analytics SQLite database.")
-    parser.add_argument("--path", type=str, default=None, help="Override DB_PATH")
-    args = parser.parse_args()
-
-    init_db(args.path)
-    create_tables()
-    print("✓ Database initialisation complete.")
-
-
-if __name__ == "__main__":
-    main()
+async def create_tables() -> None:
+    logger.info("DynamoDB tables managed by Terraform — no init required.")

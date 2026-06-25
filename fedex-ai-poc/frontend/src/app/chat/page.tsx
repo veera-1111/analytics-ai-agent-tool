@@ -1,7 +1,11 @@
 "use client";
 
 import { useState, useRef, useEffect, FormEvent } from "react";
+import { useRouter } from "next/navigation";
 import ReactMarkdown from "react-markdown";
+import QuantixLogo from "@/components/QuantixLogo";
+import ConnectionSelector from "@/components/ConnectionSelector";
+import { api } from "@/lib/api";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "/api";
 
@@ -100,6 +104,8 @@ export default function ChatPage() {
   const [mode, setMode] = useState<"embedded" | "fullscreen">("fullscreen");
 
   const [sessionId, setSessionId] = useState<string>("");
+  const [connectionId, setConnectionId] = useState<string | null>(null);
+  const router = useRouter();
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -113,6 +119,9 @@ export default function ChatPage() {
       sessionStorage.setItem("chat_session_id", sid);
     }
     setSessionId(sid);
+    const connId = localStorage.getItem("quantixai_connection_id");
+    if (!connId) { router.push("/ai/connect"); return; }
+    setConnectionId(connId);
   }, []);
 
   useEffect(() => {
@@ -135,7 +144,7 @@ export default function ChatPage() {
       const res = await fetch(`${API_BASE}/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: text.trim(), session_id: sessionId }),
+        body: JSON.stringify({ message: text.trim(), session_id: sessionId, connection_id: connectionId }),
       });
       const data = await res.json();
 
@@ -175,27 +184,13 @@ export default function ChatPage() {
       {!isEmbedded && (
         <header className="flex items-center justify-between px-6 py-4 border-b border-[var(--border-color)] bg-white dark:bg-surface-dark shadow-xs">
           <div className="flex items-center gap-3">
-            <svg className="h-8 w-auto" viewBox="0 0 120 30" fill="none" xmlns="http://www.w3.org/2000/svg">
-              {/* Corner brackets */}
-              <path d="M2 8V2H8" stroke="#4ca649" strokeWidth="2.5" strokeLinecap="round" />
-              <path d="M22 8V2H16" stroke="#c27a39" strokeWidth="2.5" strokeLinecap="round" />
-              <path d="M2 16v6h6" stroke="#c27a39" strokeWidth="2.5" strokeLinecap="round" />
-              <path d="M22 16v6h-6" stroke="#4ca649" strokeWidth="2.5" strokeLinecap="round" />
-              
-              {/* Dots inside brackets */}
-              <circle cx="8" cy="8" r="1.5" fill="#4ca649" />
-              <circle cx="16" cy="8" r="1.5" fill="#c27a39" />
-              <circle cx="8" cy="16" r="1.5" fill="#c27a39" />
-              <circle cx="16" cy="16" r="1.5" fill="#4ca649" />
-
-              <text x="32" y="18" fontFamily="system-ui, -apple-system, sans-serif" fontSize="15" fontWeight="800" fill="currentColor" className="text-[var(--text-primary)]">Open</text>
-              <text x="71" y="18" fontFamily="system-ui, -apple-system, sans-serif" fontSize="15" fontWeight="400" fill="currentColor" className="text-[var(--text-primary)]">Dhi</text>
-            </svg>
+            <QuantixLogo size="sm" className="h-7 w-auto text-[var(--text-primary)]" />
             <div className="h-6 w-px bg-[var(--border-color)] mx-1" />
-            <div>
-              <h1 className="text-sm font-semibold text-[var(--text-primary)]">Logistics Analytics</h1>
-              <p className="text-[10px] text-[var(--text-secondary)] leading-none">Powered by openDhi AI engine</p>
-            </div>
+            <ConnectionSelector
+              activeConnectionId={connectionId}
+              onSelect={(id) => { setConnectionId(id); localStorage.setItem("quantixai_connection_id", id); }}
+              onAdd={() => router.push("/ai/connect")}
+            />
           </div>
         </header>
       )}
@@ -212,7 +207,7 @@ export default function ChatPage() {
             <div>
               <h2 className="text-xl font-semibold mb-2">How can I help you today?</h2>
               <p className="text-sm text-[var(--text-secondary)]">
-                Ask me about shipments, deliveries, SLA metrics, revenue, and more.
+                Ask anything about your data — shipments, revenue, SLA metrics, trends, and more.
               </p>
             </div>
             <div className="flex flex-wrap gap-2 justify-center max-w-lg">
@@ -337,7 +332,7 @@ export default function ChatPage() {
           type="text"
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder="Ask about logistics analytics..."
+          placeholder="Ask anything about your data..."
           disabled={loading}
           className="flex-1 px-4 py-2.5 rounded-xl border border-[var(--border-color)] bg-[var(--bg-primary)] focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all disabled:opacity-50"
           id="chat-input"

@@ -1,17 +1,9 @@
 terraform {
-  required_version = ">= 1.0.0"
+  required_version = ">= 1.5.0"
   required_providers {
     aws = {
       source  = "hashicorp/aws"
       version = "~> 5.0"
-    }
-    tls = {
-      source  = "hashicorp/tls"
-      version = "~> 4.0"
-    }
-    local = {
-      source  = "hashicorp/local"
-      version = "~> 2.0"
     }
   }
 }
@@ -21,125 +13,266 @@ provider "aws" {
   profile = var.aws_profile
 }
 
-# ── Data sources to query default VPC & Subnets ──────────────────
-data "aws_vpc" "default" {
-  default = true
+data "aws_caller_identity" "current" {}
+data "aws_region" "current" {}
+
+locals {
+  account_id  = data.aws_caller_identity.current.account_id
+  region      = data.aws_region.current.name
+  name_prefix = "quantixai"
 }
 
-data "aws_subnets" "default" {
-  filter {
-    name   = "vpc-id"
-    values = [data.aws_vpc.default.id]
-  }
-}
+# ── ECR Repository ─────────────────────────────────────────────────────────
+resource "aws_ecr_repository" "backend" {
+  name                 = "${local.name_prefix}-backend"
+  image_tag_mutability = "MUTABLE"
 
-data "aws_ami" "ubuntu" {
-  most_recent = true
-  owners      = ["099720109477"] # Canonical
-
-  filter {
-    name   = "name"
-    values = ["ubuntu/images/hvm-ssd/ubuntu-jammy-22.04-amd64-server-*"]
+  image_scanning_configuration {
+    scan_on_push = true
   }
 
-  filter {
-    name   = "virtualization-type"
-    values = ["hvm"]
-  }
+  tags = { Name = "${local.name_prefix}-backend" }
 }
 
-# ── Key pair generation ──────────────────────────────────────────
-resource "tls_private_key" "pk" {
-  algorithm = "RSA"
-  rsa_bits  = 4096
-}
-
-resource "aws_key_pair" "kp" {
-  key_name   = var.key_name
-  public_key = tls_private_key.pk.public_key_openssh
-}
-
-resource "local_file" "pem_file" {
-  filename        = "${path.module}/analytics-ai-key.pem"
-  content         = tls_private_key.pk.private_key_pem
-  file_permission = "0400"
-}
-
-# ── IAM Role & Instance Profile for Bedrock access ────────────────
-resource "aws_iam_role" "ec2_role" {
-  name = "analytics-ai-ec2-role"
-
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Action = "sts:AssumeRole"
-        Effect = "Allow"
-        Principal = {
-          Service = "ec2.amazonaws.com"
-        }
+resource "aws_ecr_lifecycle_policy" "backend" {
+  repository = aws_ecr_repository.backend.name
+  policy = jsonencode({
+    rules = [{
+      rulePriority = 1
+      description  = "Keep last 5 images"
+      selection = {
+        tagStatus   = "any"
+        countType   = "imageCountMoreThan"
+        countNumber = 5
       }
-    ]
+      action = { type = "expire" }
+    }]
   })
 }
 
-resource "aws_iam_role_policy_attachment" "bedrock_access" {
-  role       = aws_iam_role.ec2_role.name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonBedrockFullAccess"
+# ── DynamoDB — Sessions ────────────────────────────────────────────────────
+resource "aws_dynamodb_table" "sessions" {
+  name         = "QuantixAI-Sessions"
+  billing_mode = "PAY_PER_REQUEST"
+  hash_key     = "session_id"
+  range_key    = "timestamp"
+
+  attribute {
+    name = "session_id"
+    type = "S"
+  }
+
+  attribute {
+    name = "timestamp"
+    type = "S"
+  }
+
+  ttl {
+    attribute_name = "expires_at"
+    enabled        = true
+  }
+
+  tags = { Name = "QuantixAI-Sessions" }
 }
 
-resource "aws_iam_instance_profile" "instance_profile" {
-  name = "analytics-ai-ec2-instance-profile"
-  role = aws_iam_role.ec2_role.name
+# ── DynamoDB — Schema Cache ────────────────────────────────────────────────
+resource "aws_dynamodb_table" "schema_cache" {
+  name         = "QuantixAI-SchemaCache"
+  billing_mode = "PAY_PER_REQUEST"
+  hash_key     = "connection_id"
+
+  attribute {
+    name = "connection_id"
+    type = "S"
+  }
+
+  ttl {
+    attribute_name = "expires_at"
+    enabled        = true
+  }
+
+  tags = { Name = "QuantixAI-SchemaCache" }
 }
 
-# ── Security Group ──────────────────────────────────────────────
-resource "aws_security_group" "sg" {
-  name        = "analytics-ai-sg"
-  description = "Security group for Logistics Analytics AI Agent"
-  vpc_id      = data.aws_vpc.default.id
+# ── DynamoDB — Connections ─────────────────────────────────────────────────
+resource "aws_dynamodb_table" "connections" {
+  name         = "QuantixAI-Connections"
+  billing_mode = "PAY_PER_REQUEST"
+  hash_key     = "connection_id"
 
-  ingress {
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
+  attribute {
+    name = "connection_id"
+    type = "S"
   }
 
-  ingress {
-    from_port   = 80
-    to_port     = 80
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
+  tags = { Name = "QuantixAI-Connections" }
+}
+
+# ── DynamoDB — Saved Reports ───────────────────────────────────────────────
+resource "aws_dynamodb_table" "reports" {
+  name         = "QuantixAI-Reports"
+  billing_mode = "PAY_PER_REQUEST"
+  hash_key     = "report_id"
+
+  attribute {
+    name = "report_id"
+    type = "S"
   }
 
-  ingress {
-    from_port   = 8080
-    to_port     = 8080
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
+  ttl {
+    attribute_name = "expires_at"
+    enabled        = true
   }
 
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
+  tags = { Name = "QuantixAI-Reports" }
+}
+
+# ── DynamoDB — Conversation Logs ──────────────────────────────────────────
+resource "aws_dynamodb_table" "conversation_logs" {
+  name         = "QuantixAI-ConversationLogs"
+  billing_mode = "PAY_PER_REQUEST"
+  hash_key     = "session_id"
+  range_key    = "created_at"
+
+  attribute {
+    name = "session_id"
+    type = "S"
+  }
+
+  attribute {
+    name = "created_at"
+    type = "S"
+  }
+
+  ttl {
+    attribute_name = "expires_at"
+    enabled        = true
+  }
+
+  tags = { Name = "QuantixAI-ConversationLogs" }
+}
+
+# ── S3 — Exports Bucket ────────────────────────────────────────────────────
+resource "aws_s3_bucket" "exports" {
+  bucket        = "${local.name_prefix}-exports-${local.account_id}"
+  force_destroy = true
+  tags          = { Name = "${local.name_prefix}-exports" }
+}
+
+resource "aws_s3_bucket_lifecycle_configuration" "exports" {
+  bucket = aws_s3_bucket.exports.id
+  rule {
+    id     = "expire-exports"
+    status = "Enabled"
+    filter { prefix = "exports/" }
+    expiration { days = 7 }
   }
 }
 
-# ── EC2 Instance ────────────────────────────────────────────────
-resource "aws_instance" "app" {
-  ami                    = data.aws_ami.ubuntu.id
-  instance_type          = var.instance_type
-  key_name               = aws_key_pair.kp.key_name
-  vpc_security_group_ids = [aws_security_group.sg.id]
-  subnet_id              = data.aws_subnets.default.ids[0]
-  iam_instance_profile   = aws_iam_instance_profile.instance_profile.name
-
-  user_data = file("${path.module}/userdata.sh")
-
-  tags = {
-    Name = "analytics-ai-agent"
+resource "aws_s3_bucket_server_side_encryption_configuration" "exports" {
+  bucket = aws_s3_bucket.exports.id
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm = "AES256"
+    }
   }
+}
+
+resource "aws_s3_bucket_public_access_block" "exports" {
+  bucket                  = aws_s3_bucket.exports.id
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+
+# ── Terraform State S3 Bucket ──────────────────────────────────────────────
+resource "aws_s3_bucket" "tfstate" {
+  bucket        = "${local.name_prefix}-tfstate-${local.account_id}"
+  force_destroy = false
+  tags          = { Name = "${local.name_prefix}-tfstate" }
+}
+
+resource "aws_s3_bucket_versioning" "tfstate" {
+  bucket = aws_s3_bucket.tfstate.id
+  versioning_configuration { status = "Enabled" }
+}
+
+resource "aws_s3_bucket_server_side_encryption_configuration" "tfstate" {
+  bucket = aws_s3_bucket.tfstate.id
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm = "AES256"
+    }
+  }
+}
+
+# ── DynamoDB — Terraform State Lock ───────────────────────────────────────
+resource "aws_dynamodb_table" "tfstate_lock" {
+  name         = "${local.name_prefix}-tfstate-lock"
+  billing_mode = "PAY_PER_REQUEST"
+  hash_key     = "LockID"
+
+  attribute {
+    name = "LockID"
+    type = "S"
+  }
+
+  tags = { Name = "${local.name_prefix}-tfstate-lock" }
+}
+
+# ── IAM Role for Lambda ────────────────────────────────────────────────────
+resource "aws_iam_role" "lambda" {
+  name = "${local.name_prefix}-lambda-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Action    = "sts:AssumeRole"
+      Effect    = "Allow"
+      Principal = { Service = "lambda.amazonaws.com" }
+    }]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "lambda_basic" {
+  role       = aws_iam_role.lambda.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+}
+
+resource "aws_iam_role_policy" "lambda_custom" {
+  name = "${local.name_prefix}-lambda-policy"
+  role = aws_iam_role.lambda.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid    = "BedrockAccess"
+        Effect = "Allow"
+        Action = ["bedrock:InvokeModel", "bedrock:InvokeModelWithResponseStream"]
+        Resource = "arn:aws:bedrock:${local.region}::foundation-model/*"
+      },
+      {
+        Sid    = "DynamoDBAccess"
+        Effect = "Allow"
+        Action = ["dynamodb:GetItem", "dynamodb:PutItem", "dynamodb:DeleteItem",
+                  "dynamodb:Query", "dynamodb:UpdateItem", "dynamodb:BatchWriteItem",
+                  "dynamodb:Scan"]
+        Resource = [
+          aws_dynamodb_table.sessions.arn,
+          aws_dynamodb_table.schema_cache.arn,
+          aws_dynamodb_table.connections.arn,
+          aws_dynamodb_table.reports.arn,
+          aws_dynamodb_table.conversation_logs.arn
+        ]
+      },
+      {
+        Sid    = "S3ExportsAccess"
+        Effect = "Allow"
+        Action = ["s3:PutObject", "s3:GetObject", "s3:DeleteObject"]
+        Resource = "${aws_s3_bucket.exports.arn}/exports/*"
+      }
+    ]
+  })
 }

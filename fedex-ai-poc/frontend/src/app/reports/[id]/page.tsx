@@ -43,26 +43,46 @@ export default function ReportPage() {
 
   const [meta, setMeta] = useState<ReportMeta | null>(null);
   const [reportData, setReportData] = useState<ReportData | null>(null);
+  const [datasets, setDatasets] = useState<Record<string, any>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [layoutMode, setLayoutMode] = useState<"single" | "split" | "multi_chart">("single");
 
   useEffect(() => {
     if (!reportId) return;
 
     const fetchReport = async () => {
       try {
-        const [metaRes, dataRes] = await Promise.all([
-          fetch(`${API_BASE}/reports/${reportId}`),
-          fetch(`${API_BASE}/reports/${reportId}/data`),
-        ]);
-
-        if (!metaRes.ok || !dataRes.ok) {
+        const metaRes = await fetch(`${API_BASE}/reports/${reportId}`);
+        if (!metaRes.ok) {
           setError("Failed to load report");
           return;
         }
+        const metaJson = await metaRes.json();
+        setMeta(metaJson);
 
-        setMeta(await metaRes.json());
-        setReportData(await dataRes.json());
+        const dims = metaJson.config.dimensions || [];
+        const datasetsMap: Record<string, any> = {};
+
+        // Fetch data for each dimension individually
+        await Promise.all(
+          dims.map(async (d: string) => {
+            const res = await fetch(`${API_BASE}/reports/${reportId}/data?dimension=${d}`);
+            if (res.ok) {
+              datasetsMap[d] = await res.json();
+            }
+          })
+        );
+        setDatasets(datasetsMap);
+
+        // Fetch standard aggregated report data
+        const dataRes = await fetch(`${API_BASE}/reports/${reportId}/data`);
+        if (dataRes.ok) {
+          setReportData(await dataRes.json());
+        } else {
+          setError("Failed to load report data");
+          return;
+        }
       } catch {
         setError("Could not connect to analytics service");
       } finally {
@@ -158,17 +178,123 @@ export default function ReportPage() {
           </div>
         )}
 
-        {/* Visualization */}
-        {viz === "table" ? (
-          <TableView columns={reportData.columns} data={reportData.data} isEmbedded={isEmbedded} />
+        {/* Visualization Grid / Layouts */}
+        {/* Visualization Grid / Layouts */}
+        {(meta.config?.dimensions || []).length > 1 ? (
+          <div className="flex flex-col gap-6 animate-fade-in">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {meta.config.dimensions.map((d: string) => {
+                const ds = datasets[d];
+                if (!ds || !ds.data || ds.data.length === 0) return null;
+                
+                const chartType = d === "month" || d === "date" || d === "week" ? "line_chart" : "bar_chart";
+                const metricName = (meta.config.metrics?.[0] || "value").replace(/_/g, " ");
+                return (
+                  <div key={d} className="bg-white dark:bg-slate-800 rounded-xl p-4 shadow-sm border border-[var(--border-color)] flex flex-col justify-between">
+                    <h3 className="text-xs font-bold text-[var(--text-secondary)] mb-3 uppercase tracking-wider">
+                      {metricName} by {d}
+                    </h3>
+                    <ChartView
+                      type={chartType}
+                      data={ds.data}
+                      dimensions={[d]}
+                      metrics={meta.config.metrics || []}
+                      isEmbedded={true}
+                    />
+                  </div>
+                );
+              })}
+            </div>
+            
+            <div className="bg-white dark:bg-slate-800 rounded-xl p-4 shadow-sm border border-[var(--border-color)]">
+              <h3 className="text-xs font-bold text-[var(--text-secondary)] mb-3 uppercase tracking-wider">
+                Detailed Data View (Combined Dimensions)
+              </h3>
+              <TableView columns={reportData.columns} data={reportData.data} isEmbedded={true} />
+            </div>
+          </div>
         ) : (
-          <ChartView
-            type={viz}
-            data={reportData.data}
-            dimensions={meta.config.dimensions}
-            metrics={meta.config.metrics}
-            isEmbedded={isEmbedded}
-          />
+          <>
+            {/* Layout Mode Selector Bar */}
+            <div className="mb-4 flex items-center justify-between bg-white dark:bg-surface-dark border border-[var(--border-color)] px-4 py-2 rounded-xl shadow-xs">
+              <span className="text-xs font-semibold text-[var(--text-primary)]">Layout Mode:</span>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setLayoutMode("single")}
+                  className={`px-3 py-1 text-xs font-medium rounded-lg transition-all ${
+                    layoutMode === "single"
+                      ? "bg-[#c27a39] text-white shadow-xs"
+                      : "border border-[var(--border-color)] hover:bg-muted-light dark:hover:bg-muted-dark text-[var(--text-primary)]"
+                  }`}
+                >
+                  Single
+                </button>
+                <button
+                  onClick={() => setLayoutMode("split")}
+                  className={`px-3 py-1 text-xs font-medium rounded-lg transition-all ${
+                    layoutMode === "split"
+                      ? "bg-[#c27a39] text-white shadow-xs"
+                      : "border border-[var(--border-color)] hover:bg-muted-light dark:hover:bg-muted-dark text-[var(--text-primary)]"
+                  }`}
+                >
+                  Split (Chart + Table)
+                </button>
+                <button
+                  onClick={() => setLayoutMode("multi_chart")}
+                  className={`px-3 py-1 text-xs font-medium rounded-lg transition-all ${
+                    layoutMode === "multi_chart"
+                      ? "bg-[#c27a39] text-white shadow-xs"
+                      : "border border-[var(--border-color)] hover:bg-muted-light dark:hover:bg-muted-dark text-[var(--text-primary)]"
+                  }`}
+                >
+                  Multi-Chart (Bar + Line)
+                </button>
+              </div>
+            </div>
+
+            {/* Visualization Grid */}
+            {layoutMode === "single" ? (
+              viz === "table" ? (
+                <TableView columns={reportData.columns} data={reportData.data} isEmbedded={isEmbedded} />
+              ) : (
+                <ChartView
+                  type={viz}
+                  data={reportData.data}
+                  dimensions={meta.config?.dimensions || []}
+                  metrics={meta.config?.metrics || []}
+                  isEmbedded={isEmbedded}
+                />
+              )
+            ) : layoutMode === "split" ? (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <ChartView
+                  type={viz === "table" ? "bar_chart" : viz}
+                  data={reportData.data}
+                  dimensions={meta.config?.dimensions || []}
+                  metrics={meta.config?.metrics || []}
+                  isEmbedded={true}
+                />
+                <TableView columns={reportData.columns} data={reportData.data} isEmbedded={true} />
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <ChartView
+                  type="bar_chart"
+                  data={reportData.data}
+                  dimensions={meta.config?.dimensions || []}
+                  metrics={meta.config?.metrics || []}
+                  isEmbedded={true}
+                />
+                <ChartView
+                  type="line_chart"
+                  data={reportData.data}
+                  dimensions={meta.config?.dimensions || []}
+                  metrics={meta.config?.metrics || []}
+                  isEmbedded={true}
+                />
+              </div>
+            )}
+          </>
         )}
       </main>
     </div>
@@ -233,10 +359,32 @@ function ChartView({
   metrics: string[];
   isEmbedded?: boolean;
 }) {
-  const dimKey = dimensions[0] || Object.keys(data[0] || {})[0];
-  const metricKey = metrics[0] || Object.keys(data[0] || {}).find((k) => k !== dimKey) || "";
+  // Dynamically classify dimension and metric keys if not provided or to adapt to any schema
+  let dimKey = dimensions?.[0];
+  let metricKey = metrics?.[0];
 
-  const labels = data.map((d) => d[dimKey]);
+  if (!dimKey || !metricKey) {
+    const keys = Object.keys(data[0] || {});
+    // Filter out id/uuid columns
+    const candidateKeys = keys.filter(k => k.toLowerCase() !== "id" && k.toLowerCase() !== "uuid");
+    
+    // Find numeric column as metric
+    const numericKey = candidateKeys.find(k => {
+      const val = data[0]?.[k];
+      return typeof val === 'number' || (typeof val === 'string' && !isNaN(Number(val)) && val.trim() !== "");
+    });
+    
+    // Find non-numeric column as dimension
+    const categoricalKey = candidateKeys.find(k => {
+      const val = data[0]?.[k];
+      return typeof val === 'string' && (isNaN(Number(val)) || val.trim() === "");
+    });
+
+    dimKey = dimKey || categoricalKey || candidateKeys[0] || "";
+    metricKey = metricKey || numericKey || candidateKeys.find(k => k !== dimKey) || "";
+  }
+
+  const labels = data.map((d) => String(d[dimKey] !== undefined ? d[dimKey] : ""));
   const values = data.map((d) => Number(d[metricKey]) || 0);
 
   let option: any = {};
@@ -265,7 +413,7 @@ function ChartView({
         {
           type: "pie",
           radius: ["40%", "70%"],
-          data: data.map((d) => ({ name: d[dimKey], value: Number(d[metricKey]) || 0 })),
+          data: data.map((d) => ({ name: String(d[dimKey] !== undefined ? d[dimKey] : ""), value: Number(d[metricKey]) || 0 })),
         },
       ],
     };

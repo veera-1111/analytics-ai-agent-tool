@@ -1,6 +1,8 @@
-# Analytics AI Agent Tool - POC
+# QuantixAI
 
-A proof-of-concept analytics AI agent that provides natural language querying of logistics data, embedded as a chat widget within a CodeIgniter PHP host application.
+Intelligent analytics powered by natural language. Ask questions about your data and get instant insights, reports, and visualizations — no SQL required.
+
+> Domain: **quantixai.ai** (available)
 
 ## Architecture
 

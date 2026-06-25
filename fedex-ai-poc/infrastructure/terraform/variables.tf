@@ -1,23 +1,29 @@
 variable "aws_region" {
   type        = string
-  default     = "ap-south-1"
-  description = "The target AWS region for EC2 deployment"
+  default     = "us-east-1"
+  description = "AWS region"
 }
 
 variable "aws_profile" {
   type        = string
   default     = "anuruhu-dev"
-  description = "The AWS CLI profile name"
+  description = "AWS CLI profile name"
 }
 
-variable "instance_type" {
+variable "credentials_encryption_key" {
   type        = string
-  default     = "t3.medium"
-  description = "EC2 instance size"
+  sensitive   = true
+  description = "32-byte hex key for AES-256 encryption of stored DB credentials — pass via TF_VAR_credentials_encryption_key"
 }
 
-variable "key_name" {
+variable "amplify_github_token" {
   type        = string
-  default     = "analytics-ai-key"
-  description = "EC2 Key Pair name"
+  sensitive   = true
+  description = "GitHub personal access token for Amplify — pass via TF_VAR_amplify_github_token"
+}
+
+variable "github_repo_name" {
+  type        = string
+  default     = "analytics-ai-agent-tool"
+  description = "GitHub repository name (without owner prefix)"
 }
