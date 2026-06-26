@@ -84,6 +84,7 @@ class ClaudeAgent:
         last_result = None
         charts = []
         next_actions = []
+        accumulated_text = []
         turn = 0
 
         try:
@@ -114,10 +115,13 @@ class ClaudeAgent:
                 # Collect assistant response
                 messages.append({"role": "assistant", "content": content_blocks})
 
+                # Accumulate text from every turn (Claude may emit text alongside tool calls)
+                turn_text = " ".join(b["text"] for b in content_blocks if b.get("type") == "text").strip()
+                if turn_text:
+                    accumulated_text.append(turn_text)
+
                 if stop_reason == "end_turn":
-                    reply = " ".join(
-                        b["text"] for b in content_blocks if b.get("type") == "text"
-                    ).strip()
+                    reply = " ".join(accumulated_text).strip()
                     return {
                         "reply": reply,
                         "sql_query": last_sql,
