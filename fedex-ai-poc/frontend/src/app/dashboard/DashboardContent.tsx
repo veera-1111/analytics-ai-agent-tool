@@ -3,17 +3,10 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import nextDynamic from "next/dynamic";
-import "react-grid-layout/css/styles.css";
-import "react-resizable/css/styles.css";
 
 const ReactECharts = nextDynamic(() => import("echarts-for-react"), { ssr: false });
-
-// WidthProvider + Responsive loaded together so WidthProvider wraps correctly
 const ResponsiveGridLayout = nextDynamic(
-  () => import("react-grid-layout").then((m) => {
-    const { Responsive, WidthProvider } = m;
-    return WidthProvider(Responsive);
-  }),
+  () => import("@/components/ResponsiveGrid").then(m => m.ResponsiveGridLayout),
   { ssr: false }
 );
 
