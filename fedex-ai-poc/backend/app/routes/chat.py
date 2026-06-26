@@ -20,6 +20,7 @@ class ChatRequest(BaseModel):
     message: str
     session_id: str | None = None
     connection_id: str | None = None
+    user_email: str | None = None
 
 
 class ChatResponse(BaseModel):
@@ -45,8 +46,12 @@ async def chat(req: ChatRequest) -> Any:
     # Demo mode — answer via AI with in-memory dataset, no real DB required
     if req.connection_id == "demo":
         result = await DemoAgent.run(req.message, history)
-        await DynamoSessionStore.append(session_id, "user", req.message)
-        await DynamoSessionStore.append(session_id, "assistant", result["reply"])
+        await DynamoSessionStore.append(session_id, "user", req.message, req.user_email or "")
+        await DynamoSessionStore.append(session_id, "assistant", result["reply"], req.user_email or "")
+        if req.user_email:
+            await DynamoSessionStore.upsert_user_session(
+                req.user_email, session_id, req.message, connection_name="demo"
+            )
         return ChatResponse(
             reply=result["reply"],
             type=result.get("response_type", "text"),
@@ -58,8 +63,12 @@ async def chat(req: ChatRequest) -> Any:
 
     result = await ClaudeAgent.run(req.message, req.connection_id, history)
 
-    await DynamoSessionStore.append(session_id, "user", req.message)
-    await DynamoSessionStore.append(session_id, "assistant", result["reply"])
+    await DynamoSessionStore.append(session_id, "user", req.message, req.user_email or "")
+    await DynamoSessionStore.append(session_id, "assistant", result["reply"], req.user_email or "")
+    if req.user_email:
+        await DynamoSessionStore.upsert_user_session(
+            req.user_email, session_id, req.message, connection_name=req.connection_id or ""
+        )
 
     expires_at = int(time.time()) + 86400
     now = __import__("datetime").datetime.now(__import__("datetime").timezone.utc).isoformat()
