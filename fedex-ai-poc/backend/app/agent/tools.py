@@ -2,9 +2,11 @@ TOOLS = [
     {
         "name": "render_chart",
         "description": (
-            "Render a chart directly in the chat interface. Call this AFTER running a SQL query "
-            "whenever the data is suitable for visualization (comparisons, trends, distributions). "
-            "The chart will be displayed as an interactive bar, line, or pie chart with PNG download. "
+            "Render a chart directly in the chat interface. Call this ONLY when the user explicitly "
+            "asks for a chart, graph, visualization, or uses words like 'show me', 'plot', 'bar chart', "
+            "'trend', 'compare visually', 'pie chart', 'line chart'. "
+            "Do NOT call this for plain text questions, single-value answers, or when the user "
+            "just wants a number or a summary table. "
             "Use this instead of suggesting external tools — you CAN create charts here."
         ),
         "input_schema": {
@@ -36,6 +38,41 @@ TOOLS = [
                 },
             },
             "required": ["title", "chart_type", "labels", "values", "value_label"],
+        },
+    },
+    {
+        "name": "suggest_followups",
+        "description": (
+            "After answering the user's question, ALWAYS call this to suggest 3-4 intelligent "
+            "follow-up questions based on what was just found in the data. "
+            "Each suggestion should be a natural next step: drill deeper, compare something, "
+            "spot a trend, or explore an anomaly revealed by the answer. "
+            "Categorize each as: 'drilldown' (go deeper), 'chart' (visualize this), "
+            "'compare' (compare two things), or 'export' (get the data)."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "suggestions": {
+                    "type": "array",
+                    "description": "3-4 follow-up suggestions",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "label": {"type": "string", "description": "Short CTA button text (5-8 words)"},
+                            "prompt": {"type": "string", "description": "Full question to send when clicked"},
+                            "category": {
+                                "type": "string",
+                                "enum": ["drilldown", "chart", "compare", "export"],
+                            },
+                        },
+                        "required": ["label", "prompt", "category"],
+                    },
+                    "minItems": 3,
+                    "maxItems": 4,
+                },
+            },
+            "required": ["suggestions"],
         },
     },
     {

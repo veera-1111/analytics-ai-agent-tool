@@ -21,21 +21,24 @@ def _get_bedrock():
         _bedrock = boto3.client("bedrock-runtime", region_name=settings.aws_region_name)
     return _bedrock
 
-MAX_TURNS = 5
+MAX_TURNS = 8
 MAX_SQL_RETRIES = 2
 
-SYSTEM_PROMPT = """You are QuantixAI, an intelligent analytics assistant with full chart rendering capability.
-You have access to the user's database via tools. When a user asks a question about their data:
+SYSTEM_PROMPT = """You are QuantixAI, an intelligent analytics assistant.
+You have access to the user's database via tools. When a user asks a question:
 
 1. Use list_tables or get_table_sample if you need to explore the schema.
 2. Write a precise SQL SELECT query using run_sql.
 3. If the query fails, analyse the error and retry with a corrected query (max 2 retries).
 4. Present results in a concise markdown summary (2-4 sentences max).
-5. ALWAYS call render_chart after getting data whenever the result has 2+ rows that can be visualized.
+5. Call render_chart ONLY when the user explicitly asks for a chart, graph, visualization,
+   or uses words like "show me as", "bar chart", "line chart", "pie chart", "plot", "trend graph",
+   "compare visually". Do NOT render a chart for plain number/text questions.
    - Rankings/comparisons → bar chart
    - Trends over time → line chart
    - Proportions/shares → pie chart
-   - You CAN and SHOULD create charts — do not say you cannot.
+6. ALWAYS call suggest_followups at the end of every response to provide 3-4 smart
+   follow-up questions the user might want to explore next, based on what was just found.
 
 Rules:
 - Only SELECT queries are allowed. Never attempt INSERT, UPDATE, DELETE, DROP, or CREATE.
@@ -43,7 +46,7 @@ Rules:
 - For charts, limit labels to 12 items maximum — aggregate the rest as "Other".
 - If connecting to SQLite, avoid window functions (ROW_NUMBER, RANK, LAG, LEAD, OVER) — use subqueries or GROUP BY instead.
 - For date arithmetic in SQLite use strftime() and date(), not DATEADD or DATE_TRUNC.
-- Never tell the user to use Excel, Tableau, or any other tool to create charts. You render them directly.
+- You CAN create charts — never tell the user to use Excel or Tableau.
 
 Database schema (relevant tables):
 {schema_ddl}
@@ -80,6 +83,7 @@ class ClaudeAgent:
         last_sql = None
         last_result = None
         charts = []
+        next_actions = []
         turn = 0
 
         try:
@@ -119,6 +123,7 @@ class ClaudeAgent:
                         "sql_query": last_sql,
                         "query_result": last_result,
                         "charts": charts,
+                        "next_actions": next_actions,
                         "response_type": "report" if last_result else "text",
                     }
 
@@ -145,6 +150,8 @@ class ClaudeAgent:
                             sql_retries = 0
                         elif tool_name == "render_chart":
                             charts.append(result_content)
+                        elif tool_name == "suggest_followups":
+                            next_actions = result_content
                         tool_results.append({
                             "type": "tool_result",
                             "tool_use_id": tool_use_id,
@@ -178,6 +185,8 @@ class ClaudeAgent:
             "reply": "I reached the maximum number of steps without completing your request. Please try a more specific question.",
             "sql_query": last_sql,
             "query_result": last_result,
+            "charts": charts,
+            "next_actions": next_actions,
             "response_type": "text",
         }
 
@@ -197,6 +206,9 @@ class ClaudeAgent:
                 "valueLabel": inputs.get("value_label", ""),
                 "color": inputs.get("color"),
             }
+
+        if name == "suggest_followups":
+            return inputs.get("suggestions", [])
 
         if name == "list_tables":
             schema = await SchemaIndexer.load(connection_id)

@@ -186,6 +186,12 @@ export default function ChatPage() {
         type: data.type || "text",
         reportUrl: data.report_url,
         charts: data.charts?.length ? data.charts : undefined,
+        nextActions: data.next_actions?.length ? data.next_actions.map((a: any) => ({
+          label: a.label,
+          message: a.prompt,
+          category: a.category,
+          icon: ({ drilldown: "🔍", chart: "📊", compare: "⚖️", export: "⬇️" } as Record<string,string>)[a.category] ?? "💡",
+        })) : undefined,
       }]);
     } catch {
       setMessages((prev) => [...prev, {

@@ -31,6 +31,7 @@ class ChatResponse(BaseModel):
     sql_query: str | None = None
     session_id: str
     charts: list[dict] = []
+    next_actions: list[dict] = []
 
 
 @router.post("/chat", response_model=ChatResponse)
@@ -61,6 +62,7 @@ async def chat(req: ChatRequest) -> Any:
             sql_query=None,
             session_id=session_id,
             charts=result.get("charts", []),
+            next_actions=result.get("next_actions", []),
         )
 
     result = await ClaudeAgent.run(req.message, req.connection_id, history)
@@ -102,4 +104,5 @@ async def chat(req: ChatRequest) -> Any:
         sql_query=result.get("sql_query"),
         session_id=session_id,
         charts=result.get("charts", []),
+        next_actions=result.get("next_actions", []),
     )
