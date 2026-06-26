@@ -10,7 +10,7 @@ import nextDynamic from "next/dynamic";
 import QuantixLogo from "@/components/QuantixLogo";
 import ConnectionSelector from "@/components/ConnectionSelector";
 import { api } from "@/lib/api";
-import { isDemoMode, getDemoResponse, ChartDataset, NextAction } from "@/lib/demoData";
+import { isDemoMode, ChartDataset, NextAction } from "@/lib/demoData";
 
 const ReactECharts = nextDynamic(() => import("echarts-for-react"), { ssr: false });
 
@@ -97,26 +97,6 @@ export default function ChatPage() {
     setMessages((prev) => [...prev, userMsg]);
     setInput("");
     setLoading(true);
-
-    if (isDemoMode(connectionId)) {
-      await new Promise((r) => setTimeout(r, 700));
-      const demo = getDemoResponse(text.trim());
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: generateUUID(),
-          role: "agent",
-          content: demo.reply,
-          type: demo.type,
-          charts: demo.charts,
-          nextActions: demo.nextActions,
-          csvHeaders: demo.csvHeaders,
-          csvRows: demo.csvRows,
-        },
-      ]);
-      setLoading(false);
-      return;
-    }
 
     try {
       const res = await fetch(`${API_BASE}/chat`, {

@@ -7,6 +7,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from app.agent.claude_agent import ClaudeAgent
+from app.agent.demo_agent import DemoAgent
 from app.database.session import get_table
 from app.database.models import TABLES, report_item, conversation_log_item
 from app.session.store import DynamoSessionStore
@@ -40,6 +41,21 @@ async def chat(req: ChatRequest) -> Any:
 
     session_id = req.session_id or str(uuid.uuid4())
     history = await DynamoSessionStore.get_history(session_id)
+
+    # Demo mode — answer via AI with in-memory dataset, no real DB required
+    if req.connection_id == "demo":
+        result = await DemoAgent.run(req.message, history)
+        await DynamoSessionStore.append(session_id, "user", req.message)
+        await DynamoSessionStore.append(session_id, "assistant", result["reply"])
+        return ChatResponse(
+            reply=result["reply"],
+            type=result.get("response_type", "text"),
+            report_id=None,
+            report_url=None,
+            sql_query=None,
+            session_id=session_id,
+        )
+
     result = await ClaudeAgent.run(req.message, req.connection_id, history)
 
     await DynamoSessionStore.append(session_id, "user", req.message)
