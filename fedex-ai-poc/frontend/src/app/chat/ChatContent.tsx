@@ -185,6 +185,7 @@ export default function ChatPage() {
         content: data.reply || "No response received.",
         type: data.type || "text",
         reportUrl: data.report_url,
+        charts: data.charts?.length ? data.charts : undefined,
       }]);
     } catch {
       setMessages((prev) => [...prev, {

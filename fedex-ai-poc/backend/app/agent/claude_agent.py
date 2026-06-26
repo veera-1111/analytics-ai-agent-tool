@@ -24,21 +24,26 @@ def _get_bedrock():
 MAX_TURNS = 5
 MAX_SQL_RETRIES = 2
 
-SYSTEM_PROMPT = """You are QuantixAI, an intelligent analytics assistant.
+SYSTEM_PROMPT = """You are QuantixAI, an intelligent analytics assistant with full chart rendering capability.
 You have access to the user's database via tools. When a user asks a question about their data:
 
 1. Use list_tables or get_table_sample if you need to explore the schema.
 2. Write a precise SQL SELECT query using run_sql.
 3. If the query fails, analyse the error and retry with a corrected query (max 2 retries).
-4. Present results clearly with a markdown summary and recommend a visualization type
-   (bar_chart, line_chart, pie_chart, or table) based on the data shape.
+4. Present results in a concise markdown summary (2-4 sentences max).
+5. ALWAYS call render_chart after getting data whenever the result has 2+ rows that can be visualized.
+   - Rankings/comparisons → bar chart
+   - Trends over time → line chart
+   - Proportions/shares → pie chart
+   - You CAN and SHOULD create charts — do not say you cannot.
 
 Rules:
 - Only SELECT queries are allowed. Never attempt INSERT, UPDATE, DELETE, DROP, or CREATE.
-- Always include a LIMIT clause in your queries.
-- Be concise and data-driven in your responses.
+- Always include a LIMIT clause in your queries (max 20 for charts, 50 for tables).
+- For charts, limit labels to 12 items maximum — aggregate the rest as "Other".
 - If connecting to SQLite, avoid window functions (ROW_NUMBER, RANK, LAG, LEAD, OVER) — use subqueries or GROUP BY instead.
 - For date arithmetic in SQLite use strftime() and date(), not DATEADD or DATE_TRUNC.
+- Never tell the user to use Excel, Tableau, or any other tool to create charts. You render them directly.
 
 Database schema (relevant tables):
 {schema_ddl}
@@ -74,6 +79,7 @@ class ClaudeAgent:
         sql_retries = 0
         last_sql = None
         last_result = None
+        charts = []
         turn = 0
 
         try:
@@ -105,7 +111,6 @@ class ClaudeAgent:
                 messages.append({"role": "assistant", "content": content_blocks})
 
                 if stop_reason == "end_turn":
-                    # Final text response
                     reply = " ".join(
                         b["text"] for b in content_blocks if b.get("type") == "text"
                     ).strip()
@@ -113,6 +118,7 @@ class ClaudeAgent:
                         "reply": reply,
                         "sql_query": last_sql,
                         "query_result": last_result,
+                        "charts": charts,
                         "response_type": "report" if last_result else "text",
                     }
 
@@ -137,6 +143,8 @@ class ClaudeAgent:
                             last_sql = tool_input.get("query")
                             last_result = result_content if isinstance(result_content, dict) else None
                             sql_retries = 0
+                        elif tool_name == "render_chart":
+                            charts.append(result_content)
                         tool_results.append({
                             "type": "tool_result",
                             "tool_use_id": tool_use_id,
@@ -180,6 +188,16 @@ class ClaudeAgent:
         connection_id: str,
         engine,
     ) -> Any:
+        if name == "render_chart":
+            return {
+                "title": inputs.get("title", "Chart"),
+                "chartType": inputs.get("chart_type", "bar"),
+                "labels": [str(l) for l in inputs.get("labels", [])],
+                "values": [float(v) for v in inputs.get("values", [])],
+                "valueLabel": inputs.get("value_label", ""),
+                "color": inputs.get("color"),
+            }
+
         if name == "list_tables":
             schema = await SchemaIndexer.load(connection_id)
             if not schema:
