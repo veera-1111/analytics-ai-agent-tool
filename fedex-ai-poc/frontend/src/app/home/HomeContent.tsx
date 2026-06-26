@@ -280,6 +280,10 @@ export default function HomeContent() {
             <a href="#features" className="hover:text-indigo-600 transition-colors">Features</a>
             <a href="#how-it-works" className="hover:text-indigo-600 transition-colors">How it works</a>
             <a href="#demo" className="hover:text-indigo-600 transition-colors">Demo</a>
+            <a href="#security" className="hover:text-green-600 transition-colors flex items-center gap-1">
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
+              Security
+            </a>
             <a href="#contact" className="hover:text-indigo-600 transition-colors">Contact</a>
           </div>
           <div className="flex items-center gap-3">
@@ -296,7 +300,7 @@ export default function HomeContent() {
         </div>
         {menuOpen && (
           <div className="md:hidden border-t border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-950 px-4 py-4 space-y-3 text-sm">
-            {[["#features","Features"],["#how-it-works","How it works"],["#demo","Demo"],["#contact","Contact"]].map(([h, l]) => (
+            {[["#features","Features"],["#how-it-works","How it works"],["#demo","Demo"],["#security","Security"],["#contact","Contact"]].map(([h, l]) => (
               <a key={h} href={h} onClick={() => setMenuOpen(false)} className="block text-gray-600 dark:text-gray-400 hover:text-indigo-600">{l}</a>
             ))}
           </div>
@@ -474,8 +478,92 @@ export default function HomeContent() {
         </div>
       </section>
 
+      {/* SECURITY */}
+      <section id="security" className="py-24 px-4 sm:px-6 bg-gray-50 dark:bg-gray-900/50">
+        <div className="max-w-5xl mx-auto">
+          <AnimatedSection className="text-center mb-14">
+            <p className="text-green-600 dark:text-green-400 text-sm font-semibold uppercase tracking-widest mb-3">Security & Privacy</p>
+            <h2 className="text-3xl sm:text-4xl font-extrabold mb-4">Your data never leaves your control</h2>
+            <p className="text-gray-500 dark:text-gray-400 max-w-2xl mx-auto">
+              We built QuantixAI with a strict privacy-first architecture. We connect to your database to answer your questions — nothing more.
+            </p>
+          </AnimatedSection>
+
+          <div className="grid md:grid-cols-2 gap-6 mb-12">
+            {[
+              {
+                icon: "🔐",
+                title: "Credentials encrypted at rest",
+                desc: "Your database password and connection string are encrypted with AES-256-GCM before storage. The plain-text credential is never written to disk, never logged, and never visible to anyone — including us.",
+                color: "from-indigo-500 to-violet-500",
+              },
+              {
+                icon: "🚫",
+                title: "We never store your data",
+                desc: "QuantixAI does not copy, cache, or retain any rows from your database. When you ask a question, a query runs and the result is returned directly to you — nothing is saved on our side.",
+                color: "from-green-500 to-emerald-500",
+              },
+              {
+                icon: "👁️",
+                title: "Read-only queries only",
+                desc: "Every query QuantixAI runs is strictly a SELECT statement. It is architecturally impossible for QuantixAI to modify, delete, insert, or drop anything in your database.",
+                color: "from-blue-500 to-indigo-500",
+              },
+              {
+                icon: "⚡",
+                title: "On-demand access only",
+                desc: "Your database is queried only when you explicitly ask a question. There is no background scanning, no scheduled jobs, and no persistent connection kept open between sessions.",
+                color: "from-amber-500 to-orange-500",
+              },
+              {
+                icon: "🗑️",
+                title: "Delete anytime, instantly",
+                desc: "You own your connection. Delete it from settings at any time and all stored credentials are permanently and immediately removed — no retention period, no soft-deletes.",
+                color: "from-rose-500 to-pink-500",
+              },
+              {
+                icon: "🔒",
+                title: "Encrypted in transit",
+                desc: "All communication between your browser, our API, and your database uses TLS encryption. Your credentials are never transmitted in plain text at any point.",
+                color: "from-teal-500 to-cyan-500",
+              },
+            ].map((item, i) => (
+              <AnimatedSection key={item.title}>
+                <div className="flex gap-4 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-5 shadow-sm h-full">
+                  <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${item.color} flex items-center justify-center text-xl flex-shrink-0 shadow-sm`}>
+                    {item.icon}
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-gray-900 dark:text-white mb-1">{item.title}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">{item.desc}</p>
+                  </div>
+                </div>
+              </AnimatedSection>
+            ))}
+          </div>
+
+          {/* Policy summary banner */}
+          <AnimatedSection>
+            <div className="rounded-2xl bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 px-6 py-5 flex flex-col sm:flex-row items-start sm:items-center gap-4">
+              <div className="w-10 h-10 rounded-xl bg-green-100 dark:bg-green-800/40 flex items-center justify-center text-xl flex-shrink-0">📋</div>
+              <div className="flex-1">
+                <p className="text-sm font-semibold text-green-800 dark:text-green-300 mb-0.5">Our data policy in plain English</p>
+                <p className="text-xs text-green-700 dark:text-green-400 leading-relaxed">
+                  We store: your email address, your encrypted connection credentials, your chat history, and your saved dashboards.
+                  We do <strong>not</strong> store: any rows, columns, or data from your database.
+                  Your chat history and dashboard data are retained for 90 days and can be deleted on request.
+                </p>
+              </div>
+              <a href="#contact" className="flex-shrink-0 text-xs font-medium text-green-700 dark:text-green-300 underline underline-offset-2 hover:text-green-900 whitespace-nowrap">
+                Questions? Contact us →
+              </a>
+            </div>
+          </AnimatedSection>
+        </div>
+      </section>
+
       {/* CTA */}
-      <section className="py-24 px-4 sm:px-6 bg-gray-50 dark:bg-gray-900/50">
+      <section className="py-24 px-4 sm:px-6 bg-white dark:bg-gray-950">
         <div className="max-w-3xl mx-auto text-center">
           <AnimatedSection>
             <div className="bg-gradient-to-br from-indigo-600 to-violet-600 rounded-3xl p-12 shadow-2xl shadow-indigo-500/20">
@@ -520,6 +608,7 @@ export default function HomeContent() {
             <a href="#features" className="hover:text-indigo-600 transition-colors">Features</a>
             <a href="#how-it-works" className="hover:text-indigo-600 transition-colors">How it works</a>
             <a href="#demo" className="hover:text-indigo-600 transition-colors">Demo</a>
+            <a href="#security" className="hover:text-green-600 transition-colors">Security</a>
             <a href="#contact" className="hover:text-indigo-600 transition-colors">Contact</a>
             <button onClick={goToApp} className="hover:text-indigo-600 transition-colors">Launch app →</button>
           </div>

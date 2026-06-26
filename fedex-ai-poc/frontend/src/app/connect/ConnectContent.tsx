@@ -57,6 +57,27 @@ export default function ConnectPage() {
           <QuantixLogo size="md" className="text-[var(--text-primary)]" />
         </div>
 
+        {/* Security trust bar */}
+        <div className="mb-4 rounded-xl bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 px-4 py-3">
+          <div className="flex items-center gap-2 mb-2">
+            <svg className="w-4 h-4 text-green-600 dark:text-green-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
+            <span className="text-sm font-semibold text-green-800 dark:text-green-300">Your data stays private</span>
+          </div>
+          <ul className="space-y-1.5">
+            {[
+              ["🔐", "Credentials encrypted with AES-256-GCM before storage — never stored in plain text"],
+              ["🚫", "We never read, copy, or store the contents of your database"],
+              ["⚡", "Queries run on-demand only when you ask a question — no background scanning"],
+              ["🗑️", "You can delete your connection and all associated data at any time"],
+            ].map(([icon, text]) => (
+              <li key={text as string} className="flex items-start gap-2 text-xs text-green-700 dark:text-green-400">
+                <span className="flex-shrink-0 mt-0.5">{icon}</span>
+                <span>{text as string}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+
         <div className="bg-white dark:bg-[var(--bg-secondary)] rounded-2xl border border-[var(--border-color)] shadow-sm p-6">
 
           {/* Step 1 — Choose DB type */}
@@ -145,11 +166,26 @@ export default function ConnectPage() {
                 onClick={handleConnect}
                 className="mt-6 w-full py-2.5 rounded-xl bg-primary-600 text-white font-semibold hover:bg-primary-700 transition-colors"
               >
-                Connect
+                Connect securely →
               </button>
-              <p className="mt-3 text-xs text-center text-[var(--text-secondary)]">
-                Credentials are encrypted with AWS KMS and stored securely.
-              </p>
+
+              <div className="mt-4 rounded-xl bg-gray-50 dark:bg-slate-800/60 border border-gray-100 dark:border-slate-700 p-3 space-y-2">
+                <p className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">How we protect your credentials</p>
+                {[
+                  ["🔐", "Encrypted with AES-256-GCM", "Your password and connection string are encrypted before being written to storage. The encryption key is never logged or exposed."],
+                  ["🚫", "We never access your data", "QuantixAI only runs the SQL queries you explicitly ask for. We do not scan, copy, or retain any rows from your database."],
+                  ["👁️", "Read-only access only", "All queries are strictly SELECT — QuantixAI cannot modify, delete, or insert data into your database."],
+                  ["🗑️", "Delete anytime", "You can remove your connection at any time from the chat settings. All stored credentials are permanently deleted immediately."],
+                ].map(([icon, title, desc]) => (
+                  <div key={title as string} className="flex items-start gap-2">
+                    <span className="text-sm flex-shrink-0 mt-0.5">{icon}</span>
+                    <div>
+                      <p className="text-xs font-medium text-gray-700 dark:text-gray-300">{title as string}</p>
+                      <p className="text-[11px] text-gray-400 dark:text-gray-500 leading-relaxed">{desc as string}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </>
           )}
 
