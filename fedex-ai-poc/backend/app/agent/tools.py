@@ -2,12 +2,12 @@ TOOLS = [
     {
         "name": "render_chart",
         "description": (
-            "Render a chart directly in the chat interface. Call this ONLY when the user explicitly "
-            "asks for a chart, graph, visualization, or uses words like 'show me', 'plot', 'bar chart', "
-            "'trend', 'compare visually', 'pie chart', 'line chart'. "
-            "Do NOT call this for plain text questions, single-value answers, or when the user "
-            "just wants a number or a summary table. "
-            "Use this instead of suggesting external tools — you CAN create charts here."
+            "Render an interactive chart in the chat. "
+            "ONLY call this tool when the user's message explicitly contains a chart/visualization keyword: "
+            "'chart', 'graph', 'plot', 'bar', 'line', 'pie', 'trend', 'visualize', 'show as chart'. "
+            "DO NOT call this for plain questions about counts, averages, rankings, or summaries — "
+            "those get a text answer only. When the user hasn't asked for a chart, suggest one "
+            "via suggest_followups instead so the user can choose."
         ),
         "input_schema": {
             "type": "object",
@@ -43,12 +43,12 @@ TOOLS = [
     {
         "name": "suggest_followups",
         "description": (
-            "After answering the user's question, ALWAYS call this to suggest 3-4 intelligent "
-            "follow-up questions based on what was just found in the data. "
-            "Each suggestion should be a natural next step: drill deeper, compare something, "
-            "spot a trend, or explore an anomaly revealed by the answer. "
-            "Categorize each as: 'drilldown' (go deeper), 'chart' (visualize this), "
-            "'compare' (compare two things), or 'export' (get the data)."
+            "ALWAYS call this after every answer to provide 3-4 smart follow-up suggestions. "
+            "At least one suggestion must offer to visualize the data as a chart (category: 'chart') "
+            "so the user can request a visualization if they want one. "
+            "Other suggestions should drill deeper, compare something, or spot a trend. "
+            "Categories: 'drilldown' (go deeper into the data), 'chart' (visualize as a chart), "
+            "'compare' (compare two segments), 'export' (get the raw data)."
         ),
         "input_schema": {
             "type": "object",
