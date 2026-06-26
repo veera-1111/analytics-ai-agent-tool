@@ -446,25 +446,49 @@ export default function ChatPage() {
 
 // ── Chart card ────────────────────────────────────────────────────────────────
 type ChartType = "bar" | "line" | "pie";
+const PIE_COLORS = ["#6366f1", "#22c55e", "#f59e0b", "#ef4444", "#8b5cf6", "#06b6d4", "#ec4899", "#14b8a6"];
 
 function DemoChartCard({ chart }: { chart: ChartDataset }) {
   const [activeType, setActiveType] = useState<ChartType>(chart.chartType);
   const echartsInstanceRef = useRef<any>(null);
-  const PIE_COLORS = ["#6366f1", "#22c55e", "#f59e0b", "#ef4444", "#8b5cf6", "#06b6d4"];
+  const slug = chart.title.replace(/\s+/g, "-").toLowerCase();
 
   const downloadPNG = () => {
     const instance = echartsInstanceRef.current;
     if (!instance) return;
     const url = instance.getDataURL({ type: "png", pixelRatio: 2, backgroundColor: "#fff" });
-    const a = document.createElement("a"); a.href = url;
-    a.download = `${chart.title.replace(/\s+/g, "-").toLowerCase()}.png`; a.click();
+    const a = document.createElement("a"); a.href = url; a.download = `${slug}.png`; a.click();
+  };
+
+  const downloadExcel = async () => {
+    const XLSX = (await import("xlsx")).default;
+    const rows = chart.labels.map((label, i) => ({ [chart.title]: label, [chart.valueLabel || "Value"]: chart.values[i] }));
+    const ws = XLSX.utils.json_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Chart Data");
+    XLSX.writeFile(wb, `${slug}.xlsx`);
+  };
+
+  const downloadPDF = async () => {
+    const { jsPDF } = await import("jspdf");
+    const instance = echartsInstanceRef.current;
+    if (!instance) return;
+    const imgData = instance.getDataURL({ type: "png", pixelRatio: 2, backgroundColor: "#fff" });
+    const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+    const pageW = doc.internal.pageSize.getWidth();
+    const pageH = doc.internal.pageSize.getHeight();
+    doc.setFontSize(13);
+    doc.setTextColor(40);
+    doc.text(chart.title, 14, 14);
+    doc.addImage(imgData, "PNG", 14, 20, pageW - 28, pageH - 32);
+    doc.save(`${slug}.pdf`);
   };
 
   const buildOption = (type: ChartType): object => {
     if (type === "bar") return {
       tooltip: { trigger: "axis" },
       grid: { left: "3%", right: "4%", bottom: "14%", top: "12%", containLabel: true },
-      xAxis: { type: "category", data: chart.labels, axisLabel: { rotate: chart.labels.length > 4 ? 30 : 0, fontSize: 11 } },
+      xAxis: { type: "category", data: chart.labels, axisLabel: { rotate: chart.labels.length > 5 ? 30 : 0, fontSize: 11 } },
       yAxis: { type: "value", name: chart.valueLabel, nameTextStyle: { fontSize: 11 } },
       series: [{ data: chart.values, type: "bar", barMaxWidth: 48, itemStyle: { color: chart.color ?? "#6366f1", borderRadius: [4, 4, 0, 0] } }],
     };
@@ -478,7 +502,7 @@ function DemoChartCard({ chart }: { chart: ChartDataset }) {
         areaStyle: { color: { type: "linear", x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: (chart.color ?? "#f59e0b") + "44" }, { offset: 1, color: "transparent" }] } } }],
     };
     return {
-      tooltip: { trigger: "item", formatter: "{b}: {d}%" },
+      tooltip: { trigger: "item", formatter: "{b}: {c} ({d}%)" },
       legend: { orient: "vertical", right: "2%", top: "middle", textStyle: { fontSize: 11 }, itemWidth: 10 },
       series: [{ type: "pie", radius: ["38%", "65%"], center: ["38%", "50%"],
         data: chart.labels.map((l, i) => ({ name: l, value: chart.values[i], itemStyle: { color: PIE_COLORS[i % PIE_COLORS.length] } })),
@@ -486,28 +510,45 @@ function DemoChartCard({ chart }: { chart: ChartDataset }) {
     };
   };
 
+  const DL_BTN = "flex items-center gap-1 px-2 py-1 rounded-lg border border-gray-200 dark:border-gray-700 text-[11px] font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors";
+
   return (
     <div className="rounded-xl border border-[var(--border-color)] bg-white dark:bg-slate-800 p-3 shadow-sm">
-      <div className="flex items-center justify-between mb-2 gap-2 flex-wrap">
-        <p className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wide">{chart.title}</p>
-        <div className="flex items-center gap-1.5">
-          <div className="flex rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden text-[11px] font-medium">
-            {(["bar", "line", "pie"] as ChartType[]).map((t) => (
-              <button key={t} onClick={() => setActiveType(t)}
-                className={`px-2 py-1 capitalize transition-colors ${activeType === t ? "bg-indigo-600 text-white" : "bg-white dark:bg-slate-800 text-gray-500 hover:bg-gray-50 dark:hover:bg-slate-700"}`}>
-                {t}
-              </button>
-            ))}
-          </div>
-          <button onClick={downloadPNG} title="Download PNG"
-            className="flex items-center gap-1 px-2 py-1 rounded-lg border border-gray-200 dark:border-gray-700 text-[11px] text-gray-500 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors">
-            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-            PNG
-          </button>
+      {/* Header row */}
+      <div className="flex items-start justify-between mb-3 gap-2 flex-wrap">
+        <p className="text-sm font-semibold text-[var(--text-primary)]">{chart.title}</p>
+
+        {/* Chart type switcher */}
+        <div className="flex rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden text-[11px] font-medium flex-shrink-0">
+          {(["bar", "line", "pie"] as ChartType[]).map((t) => (
+            <button key={t} onClick={() => setActiveType(t)}
+              className={`px-2.5 py-1 capitalize transition-colors ${activeType === t ? "bg-indigo-600 text-white" : "bg-white dark:bg-slate-800 text-gray-500 hover:bg-gray-50 dark:hover:bg-slate-700"}`}>
+              {t}
+            </button>
+          ))}
         </div>
       </div>
-      <ReactECharts option={buildOption(activeType)} style={{ height: 220 }}
+
+      {/* Chart */}
+      <ReactECharts option={buildOption(activeType)} style={{ height: 240 }}
         onChartReady={(instance: any) => { echartsInstanceRef.current = instance; }} />
+
+      {/* Download bar */}
+      <div className="flex items-center gap-2 mt-3 pt-3 border-t border-gray-100 dark:border-gray-700">
+        <span className="text-[11px] text-[var(--text-secondary)] mr-1">Download:</span>
+        <button onClick={downloadPNG} className={DL_BTN}>
+          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+          PNG
+        </button>
+        <button onClick={downloadExcel} className={DL_BTN}>
+          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+          Excel
+        </button>
+        <button onClick={downloadPDF} className={DL_BTN}>
+          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
+          PDF
+        </button>
+      </div>
     </div>
   );
 }
