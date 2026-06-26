@@ -12,7 +12,7 @@ from app.config import settings
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/dashboard", tags=["dashboard"])
+router = APIRouter(prefix="/api/dashboard", tags=["dashboard"])
 
 _dynamo = boto3.resource("dynamodb", region_name=settings.aws_region_name)
 _TTL_SECONDS = 86_400 * 90  # 90 days
