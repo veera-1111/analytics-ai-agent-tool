@@ -12,7 +12,14 @@ from app.schema.indexer import SchemaIndexer
 
 logger = logging.getLogger(__name__)
 
-_bedrock = boto3.client("bedrock-runtime", region_name=settings.aws_region_name)
+_bedrock = None
+
+
+def _get_bedrock():
+    global _bedrock
+    if _bedrock is None:
+        _bedrock = boto3.client("bedrock-runtime", region_name=settings.aws_region_name)
+    return _bedrock
 
 MAX_TURNS = 5
 MAX_SQL_RETRIES = 2
@@ -30,6 +37,8 @@ Rules:
 - Only SELECT queries are allowed. Never attempt INSERT, UPDATE, DELETE, DROP, or CREATE.
 - Always include a LIMIT clause in your queries.
 - Be concise and data-driven in your responses.
+- If connecting to SQLite, avoid window functions (ROW_NUMBER, RANK, LAG, LEAD, OVER) — use subqueries or GROUP BY instead.
+- For date arithmetic in SQLite use strftime() and date(), not DATEADD or DATE_TRUNC.
 
 Database schema (relevant tables):
 {schema_ddl}
@@ -70,7 +79,9 @@ class ClaudeAgent:
         try:
             while turn < MAX_TURNS:
                 turn += 1
-                response = _bedrock.invoke_model(
+                logger.info("ClaudeAgent: calling Bedrock model=%s turn=%d", settings.bedrock_model_id, turn)
+                try:
+                    response = _get_bedrock().invoke_model(
                     modelId=settings.bedrock_model_id,
                     body=json.dumps({
                         "anthropic_version": "bedrock-2023-05-31",
@@ -82,6 +93,9 @@ class ClaudeAgent:
                     contentType="application/json",
                     accept="application/json",
                 )
+                except Exception as bedrock_exc:
+                    logger.error("ClaudeAgent: Bedrock invoke failed [%s]: %s", type(bedrock_exc).__name__, bedrock_exc)
+                    raise
 
                 body = json.loads(response["body"].read())
                 stop_reason = body.get("stop_reason")

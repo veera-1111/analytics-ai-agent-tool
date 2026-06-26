@@ -17,7 +17,7 @@ class Settings(BaseSettings):
 
     # ── AWS ───────────────────────────────────────────────
     aws_region_name: str = "us-east-1"
-    bedrock_model_id: str = "anthropic.claude-3-5-sonnet-20241022-v2:0"
+    bedrock_model_id: str = "us.anthropic.claude-haiku-4-5-20251001-v1:0"
 
     # ── CORS ──────────────────────────────────────────────
     allowed_origins: str = "*"
