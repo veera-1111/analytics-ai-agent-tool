@@ -11,6 +11,7 @@ from app.routes.chat import router as chat_router
 from app.routes.export import router as export_router
 from app.routes.connections import router as connections_router
 from app.routes.history import router as history_router
+from app.routes.dashboard import router as dashboard_router
 
 
 @asynccontextmanager
@@ -41,3 +42,4 @@ app.include_router(chat_router)
 app.include_router(reports_router)
 app.include_router(export_router)
 app.include_router(history_router)
+app.include_router(dashboard_router)
