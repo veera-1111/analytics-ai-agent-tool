@@ -8,6 +8,7 @@ import remarkGfm from "remark-gfm";
 import nextDynamic from "next/dynamic";
 import QuantixLogo from "@/components/QuantixLogo";
 import ConnectionSelector from "@/components/ConnectionSelector";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { api } from "@/lib/api";
 import { isDemoMode, ChartDataset, NextAction } from "@/lib/demoData";
 
@@ -305,6 +306,7 @@ export default function ChatPage() {
 
             {/* User pill + sign out */}
             <div className="flex items-center gap-2">
+              <ThemeToggle />
               <button onClick={() => router.push("/dashboard")}
                 title="My Dashboard"
                 className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-[var(--text-secondary)] hover:bg-indigo-50 hover:text-indigo-600 dark:hover:bg-indigo-900/20 dark:hover:text-indigo-300 border border-transparent hover:border-indigo-200 dark:hover:border-indigo-700 transition-all">
