@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 function useInView(threshold = 0.15) {
   const ref = useRef<HTMLDivElement>(null);
@@ -287,6 +288,7 @@ export default function HomeContent() {
             <a href="#contact" className="hover:text-indigo-600 transition-colors">Contact</a>
           </div>
           <div className="flex items-center gap-3">
+            <ThemeToggle />
             <button onClick={goToApp} className="hidden sm:block text-sm text-gray-600 dark:text-gray-400 hover:text-indigo-600 transition-colors">Sign in</button>
             <button onClick={goToApp} className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-xl transition-colors">
               Try free →

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import nextDynamic from "next/dynamic";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 const ReactECharts = nextDynamic(() => import("echarts-for-react"), { ssr: false });
 const ResponsiveGridLayout = nextDynamic(
@@ -271,6 +272,7 @@ export default function DashboardContent() {
           )}
         </div>
         <div className="flex items-center gap-2">
+          <ThemeToggle />
           {savingLayout && <span className="text-xs text-gray-400 animate-pulse">Saving…</span>}
           {!readOnly && widgets.length > 0 && (
             <button onClick={handleShare}

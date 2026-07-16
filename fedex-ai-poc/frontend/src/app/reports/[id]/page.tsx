@@ -5,6 +5,7 @@ export const dynamic = "force-dynamic";
 import { useEffect, useState, Suspense } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import nextDynamic from "next/dynamic";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import "ag-grid-community/styles/ag-grid.css";
 import "ag-grid-community/styles/ag-theme-alpine.css";
 
@@ -144,7 +145,8 @@ function ReportPageInner() {
                 </p>
               </div>
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 items-center">
+              <ThemeToggle />
               <a
                 href={`${API_BASE}/reports/${reportId}/export/excel`}
                 className="px-4 py-2 text-sm font-medium rounded-lg border border-[var(--border-color)] hover:bg-muted-light dark:hover:bg-muted-dark transition-colors flex items-center gap-1.5"
